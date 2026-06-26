@@ -58,17 +58,25 @@ function login() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
     })
-    .then(res => res.json())
-    .then(res => {
-        if (res.message === "Login successful") {
-            localStorage.setItem("loggedIn", "true");
-            localStorage.setItem("role", String(res.role).toLowerCase().trim());
-            localStorage.setItem("student_id", res.student_id);
-            window.location.href = "index.html";
-        } else {
-            msgEl.className = "alert alert-error";
-            msgEl.innerText = "Invalid email or password. Please try again.";
+    .then(async (res) => {
+        let payload = {};
+
+        try {
+            payload = await res.json();
+        } catch (err) {
+            payload = { message: await res.text() };
         }
+
+        if (res.ok && payload.message === "Login successful") {
+            localStorage.setItem("loggedIn", "true");
+            localStorage.setItem("role", String(payload.role).toLowerCase().trim());
+            localStorage.setItem("student_id", payload.student_id);
+            window.location.href = "index.html";
+            return;
+        }
+
+        msgEl.className = "alert alert-error";
+        msgEl.innerText = payload.message || "Invalid email or password. Please try again.";
     })
     .catch(err => {
         console.error(err);

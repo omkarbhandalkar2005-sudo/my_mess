@@ -37,17 +37,20 @@ app.post('/login', (req, res) => {
     const sql = "SELECT * FROM students WHERE email = ? AND password = ?";
 
     db.query(sql, [email, password], (err, result) => {
-        if (err) return res.send("Error");
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ message: "Error logging in" });
+        }
 
         if (result.length > 0) {
-            res.json({
+            return res.status(200).json({
                 message: "Login successful",
                 role: String(result[0].role || "student").toLowerCase().trim(),
                 student_id: result[0].id
             });
-        } else {
-            res.send("Invalid email or password");
         }
+
+        return res.status(401).json({ message: "Invalid email or password" });
     });
 });
 
