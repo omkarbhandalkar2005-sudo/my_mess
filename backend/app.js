@@ -13,14 +13,15 @@ app.get('/', (req, res) => {
 
 // REGISTER
 app.post('/register', (req, res) => {
-    const { name, contact, email, password, role } = req.body;
+    const { name, contact, email, password } = req.body;
+    const role = "student";
 
     const sql = `
     INSERT INTO students (name, contact, email, password, role)
     VALUES (?, ?, ?, ?, ?)
     `;
 
-    db.query(sql, [name, contact, email, password, String(role || "student").toLowerCase().trim()], (err) => {
+    db.query(sql, [name, contact, email, password, role], (err) => {
         if (err) {
             console.log(err);
             res.send("Error registering user");
