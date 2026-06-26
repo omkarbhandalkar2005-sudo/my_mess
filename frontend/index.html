@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard — Mess Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        document.documentElement.className =
+            "role-" + (localStorage.getItem("role") || "student").toLowerCase().trim();
+    </script>
+</head>
+<body>
+
+<nav class="navbar">
+    <div class="navbar-brand">
+        <svg width="22" height="22" fill="none" stroke="#0f766e" stroke-width="2" viewBox="0 0 24 24">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+        Mess Tracker
+    </div>
+    <div class="navbar-actions">
+        <span class="role-badge" id="roleBadge"></span>
+        <button class="btn btn-ghost btn-sm" onclick="logout()">Sign Out</button>
+    </div>
+</nav>
+
+<main class="page">
+    <header class="page-header">
+        <h1>Dashboard</h1>
+        <p id="pageSubtitle">Manage tiffins, payments, and billing</p>
+    </header>
+
+    <div class="grid">
+
+        <!-- Student profile -->
+        <section class="card student-only" id="studentIdSection">
+            <div class="card-header">
+                <div class="card-icon">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+                    </svg>
+                </div>
+                <h2>Your Account</h2>
+            </div>
+            <div class="student-banner">
+                <div>
+                    <div class="student-banner-label">Student ID</div>
+                    <div class="student-banner-id" id="display_student_id"></div>
+                </div>
+                <svg width="32" height="32" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" viewBox="0 0 24 24">
+                    <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>
+                </svg>
+            </div>
+        </section>
+
+        <!-- Add Tiffin (Admin) -->
+        <section class="card admin-only" id="addSection">
+            <div class="card-header">
+                <div class="card-icon">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
+                    </svg>
+                </div>
+                <h2>Add Tiffin</h2>
+            </div>
+
+            <div class="form-group">
+                <label for="student_id">Student ID</label>
+                <input type="number" id="student_id" placeholder="Enter student ID">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="date">Date</label>
+                    <input type="date" id="date">
+                </div>
+                <div class="form-group">
+                    <label for="type">Meal type</label>
+                    <select id="type">
+                        <option>Veg</option>
+                        <option>Non-Veg</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="quantity">Tiffin quantity</label>
+                    <input type="number" id="quantity" placeholder="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label for="extra_roti">Extra roti</label>
+                    <input type="number" id="extra_roti" placeholder="0" min="0">
+                </div>
+            </div>
+
+            <div class="form-group">
+                <label for="extra_bhakari">Extra bhakari</label>
+                <input type="number" id="extra_bhakari" placeholder="0" min="0">
+            </div>
+
+            <button class="btn btn-primary" id="addBtn" onclick="addTiffin()">Add Tiffin</button>
+            <div id="result"></div>
+        </section>
+
+        <!-- Record Payment (Admin) -->
+        <section class="card admin-only" id="paymentSection">
+            <div class="card-header">
+                <div class="card-icon purple">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
+                    </svg>
+                </div>
+                <h2>Record Payment</h2>
+            </div>
+
+            <div class="form-group">
+                <label for="pay_student_id">Student ID</label>
+                <input type="number" id="pay_student_id" placeholder="Enter student ID">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="amount_paid">Amount (₹)</label>
+                    <input type="number" id="amount_paid" placeholder="0" min="0">
+                </div>
+                <div class="form-group">
+                    <label for="pay_date">Payment date</label>
+                    <input type="date" id="pay_date">
+                </div>
+            </div>
+
+            <button class="btn btn-primary" id="payBtn" onclick="addPayment()">Record Payment</button>
+            <div id="pay_result"></div>
+        </section>
+
+        <!-- Bill -->
+        <section class="card">
+            <div class="card-header">
+                <div class="card-icon amber">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                        <polyline points="14 2 14 8 20 8"/>
+                    </svg>
+                </div>
+                <h2>Bill Summary</h2>
+            </div>
+
+            <div class="form-group admin-only" id="billLookupGroup">
+                <label for="bill_student_id">Student ID</label>
+                <input type="number" id="bill_student_id" placeholder="Enter student ID">
+            </div>
+
+            <button class="btn btn-primary admin-only" onclick="getBill()">View Bill</button>
+            <div id="bill_result"></div>
+        </section>
+
+        <!-- History -->
+        <section class="card grid-full">
+            <div class="card-header">
+                <div class="card-icon blue">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                    </svg>
+                </div>
+                <h2>Activity History</h2>
+            </div>
+
+            <div class="form-group admin-only" id="historyLookupGroup">
+                <label for="history_student_id">Student ID</label>
+                <input type="number" id="history_student_id" placeholder="Enter student ID">
+            </div>
+
+            <button class="btn btn-primary admin-only" style="max-width:200px" onclick="loadHistory()">Load History</button>
+
+            <p class="subsection-title">Tiffin records</p>
+            <div id="tiffin_history"></div>
+
+            <p class="subsection-title">Payment records</p>
+            <div id="payment_history"></div>
+        </section>
+
+    </div>
+</main>
+
+<script>
+    if (localStorage.getItem("loggedIn") !== "true") {
+        window.location.href = "login.html";
+    }
+
+    function getRole() {
+        return (localStorage.getItem("role") || "student").toLowerCase().trim();
+    }
+
+    function isAdmin() {
+        return getRole() === "admin";
+    }
+
+    function getStudentId(inputId) {
+        if (isAdmin()) {
+            return document.getElementById(inputId).value;
+        }
+        return localStorage.getItem("student_id");
+    }
+
+    function showAlert(elId, message, type) {
+        const el = document.getElementById(elId);
+        el.className = `alert alert-${type}`;
+        el.innerText = message;
+    }
+
+    function initDashboard() {
+        const role = getRole();
+        document.documentElement.className = "role-" + role;
+        document.body.classList.add("role-" + role);
+
+        const badge = document.getElementById("roleBadge");
+        badge.innerText = role;
+        if (isAdmin()) {
+            badge.classList.add("admin");
+            document.getElementById("pageSubtitle").innerText =
+                "Manage tiffins, payments, and billing for all students";
+        } else {
+            document.getElementById("display_student_id").innerText =
+                localStorage.getItem("student_id") || "—";
+            document.getElementById("pageSubtitle").innerText =
+                "View your bill and meal history";
+            getBill();
+            loadHistory();
+        }
+    }
+
+    initDashboard();
+
+    function logout() {
+        localStorage.clear();
+        window.location.href = "login.html";
+    }
+
+    function addTiffin() {
+        document.getElementById("addBtn").disabled = true;
+
+        const data = {
+            student_id: document.getElementById("student_id").value,
+            date: document.getElementById("date").value,
+            type: document.getElementById("type").value,
+            quantity: document.getElementById("quantity").value,
+            extra_roti: document.getElementById("extra_roti").value || 0,
+            extra_bhakari: document.getElementById("extra_bhakari").value || 0
+        };
+
+        fetch("http://127.0.0.1:3000/add-tiffin", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        })
+        .then(res => res.text())
+        .then(msg => {
+            showAlert("result", msg, msg.includes("success") ? "success" : "error");
+        })
+        .catch(err => {
+            console.error(err);
+            showAlert("result", "Failed to add tiffin. Please try again.", "error");
+        })
+        .finally(() => {
+            document.getElementById("addBtn").disabled = false;
+        });
+    }
+
+    function addPayment() {
+        document.getElementById("payBtn").disabled = true;
+
+        const data = {
+            student_id: document.getElementById("pay_student_id").value,
+            amount_paid: document.getElementById("amount_paid").value,
+            date: document.getElementById("pay_date").value
+        };
+
+        fetch("http://127.0.0.1:3000/add-payment", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(data)
+        })
+        .then(res => res.text())
+        .then(msg => {
+            showAlert("pay_result", msg, msg.includes("success") ? "success" : "error");
+        })
+        .catch(err => {
+            console.error(err);
+            showAlert("pay_result", "Failed to record payment. Please try again.", "error");
+        })
+        .finally(() => {
+            document.getElementById("payBtn").disabled = false;
+        });
+    }
+
+    function renderTable(rows, columns) {
+        if (!rows.length) {
+            return '<p class="empty">No records found.</p>';
+        }
+        const headers = columns.map(c => `<th>${c.label}</th>`).join("");
+        const body = rows.map(row =>
+            `<tr>${columns.map(c => `<td>${row[c.key] ?? "—"}</td>`).join("")}</tr>`
+        ).join("");
+        return `<div class="table-wrap"><table><thead><tr>${headers}</tr></thead><tbody>${body}</tbody></table></div>`;
+    }
+
+    function getBill() {
+        const id = getStudentId("bill_student_id");
+        if (!id) return;
+
+        fetch(`http://127.0.0.1:3000/final-bill/${id}`)
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById("bill_result").innerHTML = `
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Tiffins</div>
+                        <div class="stat-value">${data.totalTiffin}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Extra Roti</div>
+                        <div class="stat-value">${data.extraRoti}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Extra Bhakari</div>
+                        <div class="stat-value">${data.extraBhakari}</div>
+                    </div>
+                    <div class="stat-card highlight">
+                        <div class="stat-label">Total Amount</div>
+                        <div class="stat-value">₹${data.totalAmount}</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-label">Paid</div>
+                        <div class="stat-value">₹${data.totalPaid}</div>
+                    </div>
+                    <div class="stat-card danger">
+                        <div class="stat-label">Pending</div>
+                        <div class="stat-value">₹${data.pending}</div>
+                    </div>
+                </div>`;
+        })
+        .catch(err => {
+            console.error(err);
+            showAlert("bill_result", "Failed to load bill. Please try again.", "error");
+        });
+    }
+
+    function loadHistory() {
+        const id = getStudentId("history_student_id");
+        if (!id) return;
+
+        Promise.all([
+            fetch(`http://127.0.0.1:3000/tiffin-history/${id}`).then(r => r.json()),
+            fetch(`http://127.0.0.1:3000/payment-history/${id}`).then(r => r.json())
+        ])
+        .then(([tiffins, payments]) => {
+            document.getElementById("tiffin_history").innerHTML = renderTable(tiffins, [
+                { key: "date", label: "Date" },
+                { key: "type", label: "Type" },
+                { key: "quantity", label: "Qty" },
+                { key: "extra_roti", label: "Roti" },
+                { key: "extra_bhakari", label: "Bhakari" }
+            ]);
+            document.getElementById("payment_history").innerHTML = renderTable(payments, [
+                { key: "date", label: "Date" },
+                { key: "amount_paid", label: "Amount (₹)" }
+            ]);
+        })
+        .catch(err => {
+            console.error(err);
+            document.getElementById("tiffin_history").innerHTML =
+                '<p class="empty">Failed to load history.</p>';
+        });
+    }
+</script>
+
+</body>
+</html>

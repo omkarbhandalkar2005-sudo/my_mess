@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign In — Mess Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-card-header">
+            <div class="auth-logo">
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+            </div>
+            <h1>Mess Tracker</h1>
+            <p>Sign in to manage your mess account</p>
+        </div>
+
+        <div class="auth-card-body">
+            <div class="form-group">
+                <label for="email">Email address</label>
+                <input type="email" id="email" placeholder="you@example.com">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter your password">
+            </div>
+
+            <button class="btn btn-primary" onclick="login()">Sign In</button>
+
+            <div id="loginMsg"></div>
+
+            <p class="auth-footer">
+                Don't have an account? <a href="register.html">Create one</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+function login() {
+    const data = {
+        email: document.getElementById("email").value,
+        password: document.getElementById("password").value
+    };
+
+    const msgEl = document.getElementById("loginMsg");
+    msgEl.className = "";
+    msgEl.innerText = "";
+
+    fetch("http://127.0.0.1:3000/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+    })
+    .then(res => res.json())
+    .then(res => {
+        if (res.message === "Login successful") {
+            localStorage.setItem("loggedIn", "true");
+            localStorage.setItem("role", String(res.role).toLowerCase().trim());
+            localStorage.setItem("student_id", res.student_id);
+            window.location.href = "index.html";
+        } else {
+            msgEl.className = "alert alert-error";
+            msgEl.innerText = "Invalid email or password. Please try again.";
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        msgEl.className = "alert alert-error";
+        msgEl.innerText = "Unable to reach server. Is the backend running?";
+    });
+}
+</script>
+
+</body>
+</html>

@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Create Account — Mess Tracker</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<div class="auth-page">
+    <div class="auth-card">
+        <div class="auth-card-header">
+            <div class="auth-logo">
+                <svg width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                    <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+                </svg>
+            </div>
+            <h1>Create Account</h1>
+            <p>Register as a student or admin</p>
+        </div>
+
+        <div class="auth-card-body">
+            <div class="form-group">
+                <label for="name">Full name</label>
+                <input type="text" id="name" placeholder="John Doe">
+            </div>
+
+            <div class="form-group">
+                <label for="contact">Contact number</label>
+                <input type="text" id="contact" placeholder="9876543210">
+            </div>
+
+            <div class="form-group">
+                <label for="email">Email address</label>
+                <input type="email" id="email" placeholder="you@example.com">
+            </div>
+
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Choose a password">
+            </div>
+
+            <div class="form-group">
+                <label for="role">Account type</label>
+                <select id="role">
+                    <option value="student">Student</option>
+                    <option value="admin">Admin</option>
+                </select>
+            </div>
+
+            <button class="btn btn-primary" onclick="register()">Create Account</button>
+
+            <div id="msg"></div>
+
+            <p class="auth-footer">
+                Already registered? <a href="login.html">Sign in</a>
+            </p>
+        </div>
+    </div>
+</div>
+
+<script>
+function register() {
+    const data = {
+        name: document.getElementById("name").value,
+        contact: document.getElementById("contact").value,
+        email: document.getElementById("email").value,
+        password: document.getElementById("password").value,
+        role: document.getElementById("role").value
+    };
+
+    const msgEl = document.getElementById("msg");
+    msgEl.className = "";
+    msgEl.innerText = "";
+
+    fetch("http://127.0.0.1:3000/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(data)
+    })
+    .then(res => res.text())
+    .then(res => {
+        if (res.includes("successful")) {
+            msgEl.className = "alert alert-success";
+            msgEl.innerText = "Account created! Redirecting to sign in…";
+            setTimeout(() => { window.location.href = "login.html"; }, 1500);
+        } else {
+            msgEl.className = "alert alert-error";
+            msgEl.innerText = "Registration failed. Email may already be in use.";
+        }
+    })
+    .catch(err => {
+        console.error(err);
+        msgEl.className = "alert alert-error";
+        msgEl.innerText = "Unable to reach server. Is the backend running?";
+    });
+}
+</script>
+
+</body>
+</html>
