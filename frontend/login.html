@@ -60,10 +60,7 @@ function login() {
     })
     .then(async (res) => {
          
-        console.log("Status:", res.status);
-        console.log("OK:", res.ok);
-        
-        let payload = {};
+           let payload = {};
 
         try {
             payload = await res.json();
