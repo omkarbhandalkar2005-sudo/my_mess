@@ -59,6 +59,10 @@ function login() {
         body: JSON.stringify(data)
     })
     .then(async (res) => {
+         
+        console.log("Status:", res.status);
+        console.log("OK:", res.ok);
+        
         let payload = {};
 
         try {
