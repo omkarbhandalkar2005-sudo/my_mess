@@ -1,9 +1,10 @@
 require('dotenv').config();
-const express = require('express');
-const cors    = require('cors');
-const bcrypt  = require('bcrypt');
-const app     = express();
-const db      = require('./db');
+const express      = require('express');
+const cors         = require('cors');
+const bcrypt       = require('bcrypt');
+const nodemailer   = require('nodemailer');
+const app          = express();
+const db           = require('./db');
 
 app.use(cors());
 app.use(express.json());
@@ -12,17 +13,29 @@ const TIFFIN_PRICE  = 70;
 const ROTI_PRICE    = 10;
 const BHAKARI_PRICE = 10;
 
+// OTP store (email -> { otp, expiry })
+const otpStore = {};
+
+// Nodemailer setup
+const transporter = nodemailer.createTransport({
+    service: 'gmail',
+    auth: {
+        user: process.env.GMAIL_USER,
+        pass: process.env.GMAIL_PASS
+    }
+});
+
 // TEST
 app.get('/', (req, res) => {
     res.status(200).send("Server chal raha hai bro 🚀");
 });
 
-// REGISTER
-app.post('/register', (req, res) => {
-    const { name, contact, email, password } = req.body;
+// SEND OTP
+app.post('/send-otp', (req, res) => {
+    const { email } = req.body;
 
-    if (!name || !contact || !email || !password) {
-        return res.status(400).json({ message: "All fields are required" });
+    if (!email) {
+        return res.status(400).json({ message: "Email required" });
     }
 
     db.query("SELECT id FROM students WHERE email = ?", [email], (err, result) => {
@@ -35,23 +48,77 @@ app.post('/register', (req, res) => {
             return res.status(409).json({ message: "Email already registered" });
         }
 
-        bcrypt.hash(password, 10, (err, hash) => {
+        const otp    = Math.floor(100000 + Math.random() * 900000).toString();
+        const expiry = Date.now() + 5 * 60 * 1000; // 5 minutes
+
+        otpStore[email] = { otp, expiry };
+
+        const mailOptions = {
+            from:    process.env.GMAIL_USER,
+            to:      email,
+            subject: "Mess Tracker - OTP Verification",
+            html: `
+                <h2>Mess Tracker Registration</h2>
+                <p>Tumhara OTP hai:</p>
+                <h1 style="color: #4CAF50; letter-spacing: 5px;">${otp}</h1>
+                <p>Yeh OTP 5 minutes mein expire ho jayega.</p>
+            `
+        };
+
+        transporter.sendMail(mailOptions, (err) => {
             if (err) {
                 console.error(err);
-                return res.status(500).json({ message: "Error creating account" });
+                return res.status(500).json({ message: "OTP send karne mein error" });
             }
 
-            const sql = `INSERT INTO students (name, contact, email, password, role)
-                         VALUES (?, ?, ?, ?, ?)`;
+            return res.status(200).json({ message: "OTP sent successfully ✅" });
+        });
+    });
+});
 
-            db.query(sql, [name, contact, email, hash, "student"], (err) => {
-                if (err) {
-                    console.error(err);
-                    return res.status(500).json({ message: "Error registering user" });
-                }
+// REGISTER
+app.post('/register', (req, res) => {
+    const { name, contact, email, password, otp } = req.body;
 
-                return res.status(201).json({ message: "Registration successful ✅" });
-            });
+    if (!name || !contact || !email || !password || !otp) {
+        return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // OTP verify karo
+    const stored = otpStore[email];
+
+    if (!stored) {
+        return res.status(400).json({ message: "Pehle OTP bhejo" });
+    }
+
+    if (Date.now() > stored.expiry) {
+        delete otpStore[email];
+        return res.status(400).json({ message: "OTP expire ho gaya, dobara bhejo" });
+    }
+
+    if (stored.otp !== otp) {
+        return res.status(400).json({ message: "Galat OTP" });
+    }
+
+    delete otpStore[email];
+
+    // OTP sahi hai — ab register karo
+    bcrypt.hash(password, 10, (err, hash) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ message: "Error creating account" });
+        }
+
+        const sql = `INSERT INTO students (name, contact, email, password, role)
+                     VALUES (?, ?, ?, ?, ?)`;
+
+        db.query(sql, [name, contact, email, hash, "student"], (err) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ message: "Error registering user" });
+            }
+
+            return res.status(201).json({ message: "Registration successful ✅" });
         });
     });
 });
