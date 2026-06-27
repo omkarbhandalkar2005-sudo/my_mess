@@ -41,7 +41,13 @@
                 <input type="password" id="password" placeholder="Choose a password">
             </div>
 
-            <button class="btn btn-primary" onclick="register()">Create Account</button>
+            <!-- OTP Section -->
+            <div class="form-group" style="display: flex; gap: 8px;">
+                <input type="text" id="otp" placeholder="Enter OTP" style="flex: 1;" disabled>
+                <button class="btn btn-primary" id="otpBtn" onclick="sendOTP()" style="white-space: nowrap;">Send OTP</button>
+            </div>
+
+            <button class="btn btn-primary" onclick="register()" id="registerBtn" disabled>Create Account</button>
 
             <div id="msg"></div>
 
@@ -53,36 +59,97 @@
 </div>
 
 <script>
+function sendOTP() {
+    const email  = document.getElementById("email").value;
+    const msgEl  = document.getElementById("msg");
+    const otpBtn = document.getElementById("otpBtn");
+
+    if (!email) {
+        msgEl.className = "alert alert-error";
+        msgEl.innerText = "Pehle email daalo!";
+        return;
+    }
+
+    otpBtn.disabled  = true;
+    otpBtn.innerText = "Sending...";
+    msgEl.className  = "";
+    msgEl.innerText  = "";
+
+    fetch("http://127.0.0.1:3000/send-otp", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ email })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.message.includes("sent")) {
+            msgEl.className = "alert alert-success";
+            msgEl.innerText = "OTP bhej diya! Email check karo 📧";
+            document.getElementById("otp").disabled        = false;
+            document.getElementById("registerBtn").disabled = false;
+
+            // Resend button 60 seconds baad
+            let secs = 60;
+            const timer = setInterval(() => {
+                otpBtn.innerText = `Resend (${secs}s)`;
+                secs--;
+                if (secs < 0) {
+                    clearInterval(timer);
+                    otpBtn.disabled  = false;
+                    otpBtn.innerText = "Resend OTP";
+                }
+            }, 1000);
+        } else {
+            msgEl.className  = "alert alert-error";
+            msgEl.innerText  = data.message;
+            otpBtn.disabled  = false;
+            otpBtn.innerText = "Send OTP";
+        }
+    })
+    .catch(() => {
+        msgEl.className  = "alert alert-error";
+        msgEl.innerText  = "Server se connect nahi ho pa raha!";
+        otpBtn.disabled  = false;
+        otpBtn.innerText = "Send OTP";
+    });
+}
+
 function register() {
     const data = {
-        name: document.getElementById("name").value,
-        contact: document.getElementById("contact").value,
-        email: document.getElementById("email").value,
-        password: document.getElementById("password").value
+        name:     document.getElementById("name").value,
+        contact:  document.getElementById("contact").value,
+        email:    document.getElementById("email").value,
+        password: document.getElementById("password").value,
+        otp:      document.getElementById("otp").value
     };
 
     const msgEl = document.getElementById("msg");
     msgEl.className = "";
     msgEl.innerText = "";
 
+    if (!data.name || !data.contact || !data.email || !data.password || !data.otp) {
+        msgEl.className = "alert alert-error";
+        msgEl.innerText = "Sabhi fields bharo aur OTP verify karo!";
+        return;
+    }
+
     fetch("http://127.0.0.1:3000/register", {
-        method: "POST",
+        method:  "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(data)
+        body:    JSON.stringify(data)
     })
-    .then(res => res.text())
-    .then(res => {
-        if (res.includes("successful")) {
+    .then(res => res.json())
+    .then(data => {
+        if (data.message.includes("successful")) {
             msgEl.className = "alert alert-success";
             msgEl.innerText = "Account created! Redirecting to sign in…";
             setTimeout(() => { window.location.href = "login.html"; }, 1500);
         } else {
             msgEl.className = "alert alert-error";
-            msgEl.innerText = "Registration failed. Email may already be in use.";
+            msgEl.innerText = data.message;
         }
     })
-    .catch(err => {
-        console.error(err);
+    .catch(() => {
         msgEl.className = "alert alert-error";
         msgEl.innerText = "Unable to reach server. Is the backend running?";
     });
