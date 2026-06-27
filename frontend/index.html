@@ -250,7 +250,7 @@
             extra_bhakari: document.getElementById("extra_bhakari").value || 0
         };
 
-        fetch("http://127.0.0.1:3000/add-tiffin", {
+        fetch(`${API}/add-tiffin`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data)
@@ -277,7 +277,7 @@
             date: document.getElementById("pay_date").value
         };
 
-        fetch("http://127.0.0.1:3000/add-payment", {
+        fetch(`${API}/add-payment`, {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data)
@@ -310,7 +310,7 @@
         const id = getStudentId("bill_student_id");
         if (!id) return;
 
-        fetch(`http://127.0.0.1:3000/final-bill/${id}`)
+        fetch(`${API}/final-bill/${id}`)
         .then(res => res.json())
         .then(data => {
             document.getElementById("bill_result").innerHTML = `
@@ -352,8 +352,8 @@
         if (!id) return;
 
         Promise.all([
-            fetch(`http://127.0.0.1:3000/tiffin-history/${id}`).then(r => r.json()),
-            fetch(`http://127.0.0.1:3000/payment-history/${id}`).then(r => r.json())
+            fetch(`${API}/tiffin-history/${id}`).then(r => r.json()),
+            fetch(`${API}/payment-history/${id}`).then(r => r.json())
         ])
         .then(([tiffins, payments]) => {
             document.getElementById("tiffin_history").innerHTML = renderTable(tiffins, [

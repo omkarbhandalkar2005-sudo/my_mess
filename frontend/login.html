@@ -43,6 +43,7 @@
 </div>
 
 <script>
+const API = "http://127.0.0.1:3000";
 function login() {
     const data = {
         email: document.getElementById("email").value,
@@ -53,7 +54,7 @@ function login() {
     msgEl.className = "";
     msgEl.innerText = "";
 
-    fetch("http://127.0.0.1:3000/login", {
+    fetch(`${API}/login`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(data)
