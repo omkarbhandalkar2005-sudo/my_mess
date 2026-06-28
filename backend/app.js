@@ -1,10 +1,10 @@
 require('dotenv').config();
-const express      = require('express');
-const cors         = require('cors');
-const bcrypt       = require('bcrypt');
-const nodemailer   = require('nodemailer');
-const app          = express();
-const db           = require('./db');
+const express    = require('express');
+const cors       = require('cors');
+const bcrypt     = require('bcrypt');
+const https      = require('https');
+const app        = express();
+const db         = require('./db');
 
 app.use(cors());
 app.use(express.json());
@@ -13,19 +13,45 @@ const TIFFIN_PRICE  = 70;
 const ROTI_PRICE    = 10;
 const BHAKARI_PRICE = 10;
 
-// OTP store (email -> { otp, expiry })
 const otpStore = {};
 
-// Nodemailer setup
-const transporter = nodemailer.createTransport({
-    host:   process.env.SMTP_HOST,
-    port:   process.env.SMTP_PORT,
-    secure: false,
-    auth: {
-        user: process.env.SMTP_USER,
-        pass: process.env.SMTP_PASS
-    }
-});
+// Brevo API se email bhejo
+function sendEmail(to, subject, htmlContent, callback) {
+    const data = JSON.stringify({
+        sender: { name: "Mess Tracker", email: "messtrackerapp@gmail.com" },
+        to: [{ email: to }],
+        subject: subject,
+        htmlContent: htmlContent
+    });
+
+    const options = {
+        hostname: 'api.brevo.com',
+        path:     '/v3/smtp/email',
+        method:   'POST',
+        headers: {
+            'Content-Type':  'application/json',
+            'api-key':       process.env.BREVO_API_KEY,
+            'Content-Length': Buffer.byteLength(data)
+        }
+    };
+
+    const req = https.request(options, (res) => {
+        let body = '';
+        res.on('data', chunk => body += chunk);
+        res.on('end', () => {
+            if (res.statusCode >= 200 && res.statusCode < 300) {
+                callback(null);
+            } else {
+                callback(new Error(`Brevo error: ${body}`));
+            }
+        });
+    });
+
+    req.on('error', callback);
+    req.write(data);
+    req.end();
+}
+
 // TEST
 app.get('/', (req, res) => {
     res.status(200).send("Server chal raha hai bro 🚀");
@@ -54,24 +80,18 @@ app.post('/send-otp', (req, res) => {
 
         otpStore[email] = { otp, expiry };
 
-        const mailOptions = {
-            from:    process.env.GMAIL_USER,
-            to:      email,
-            subject: "Mess Tracker - OTP Verification",
-            html: `
-                <h2>Mess Tracker Registration</h2>
-                <p>Tumhara OTP hai:</p>
-                <h1 style="color: #4CAF50; letter-spacing: 5px;">${otp}</h1>
-                <p>Yeh OTP 5 minutes mein expire ho jayega.</p>
-            `
-        };
+        const html = `
+            <h2>Mess Tracker Registration</h2>
+            <p>Tumhara OTP hai:</p>
+            <h1 style="color: #4CAF50; letter-spacing: 5px;">${otp}</h1>
+            <p>Yeh OTP 5 minutes mein expire ho jayega.</p>
+        `;
 
-        transporter.sendMail(mailOptions, (err) => {
+        sendEmail(email, "Mess Tracker - OTP Verification", html, (err) => {
             if (err) {
                 console.error(err);
                 return res.status(500).json({ message: "OTP send karne mein error" });
             }
-
             return res.status(200).json({ message: "OTP sent successfully ✅" });
         });
     });
