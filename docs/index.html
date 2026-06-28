@@ -185,6 +185,8 @@
 </main>
 
 <script>
+    const API = "https://mess-tracker-production.up.railway.app";
+
     if (localStorage.getItem("loggedIn") !== "true") {
         window.location.href = "login.html";
     }
@@ -255,9 +257,9 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data)
         })
-        .then(res => res.text())
-        .then(msg => {
-            showAlert("result", msg, msg.includes("success") ? "success" : "error");
+        .then(res => res.json())
+        .then(data => {
+            showAlert("result", data.message, data.message.includes("success") ? "success" : "error");
         })
         .catch(err => {
             console.error(err);
@@ -282,9 +284,9 @@
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify(data)
         })
-        .then(res => res.text())
-        .then(msg => {
-            showAlert("pay_result", msg, msg.includes("success") ? "success" : "error");
+        .then(res => res.json())
+        .then(data => {
+            showAlert("pay_result", data.message, data.message.includes("success") ? "success" : "error");
         })
         .catch(err => {
             console.error(err);
