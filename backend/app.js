@@ -18,7 +18,9 @@ const otpStore = {};
 
 // Nodemailer setup
 const transporter = nodemailer.createTransport({
-    service: 'gmail',
+    host:   'smtp.gmail.com',
+    port:   465,
+    secure: true,
     auth: {
         user: process.env.GMAIL_USER,
         pass: process.env.GMAIL_PASS
@@ -49,7 +51,7 @@ app.post('/send-otp', (req, res) => {
         }
 
         const otp    = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiry = Date.now() + 5 * 60 * 1000; // 5 minutes
+        const expiry = Date.now() + 5 * 60 * 1000;
 
         otpStore[email] = { otp, expiry };
 
@@ -84,7 +86,6 @@ app.post('/register', (req, res) => {
         return res.status(400).json({ message: "All fields are required" });
     }
 
-    // OTP verify karo
     const stored = otpStore[email];
 
     if (!stored) {
@@ -102,7 +103,6 @@ app.post('/register', (req, res) => {
 
     delete otpStore[email];
 
-    // OTP sahi hai — ab register karo
     bcrypt.hash(password, 10, (err, hash) => {
         if (err) {
             console.error(err);
