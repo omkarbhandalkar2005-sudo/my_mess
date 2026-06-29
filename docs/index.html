@@ -154,6 +154,20 @@
 
             <button class="btn btn-primary admin-only" onclick="getBill()">View Bill</button>
             <div id="bill_result"></div>
+
+            <!-- UPI Pay Button - Student Only -->
+            <div class="student-only" id="payNowSection" style="margin-top: 1rem; display: none;">
+                <button class="btn btn-primary" onclick="toggleQR()" id="payNowBtn" style="width: 100%;">
+                    💳 Pay via UPI
+                </button>
+
+                <div id="qrSection" style="display: none; margin-top: 1rem; text-align: center;">
+                    <img src="GooglePay_QR.png" alt="UPI QR Code" style="width: 200px; height: 200px; border-radius: 12px; border: 1px solid #e5e7eb;">
+                    <p style="margin-top: 8px; font-size: 14px; color: #6b7280;">UPI ID: <strong>omkarbhandalkar2005@okicici</strong></p>
+                    <p style="font-size: 12px; color: #9ca3af;">Kisi bhi UPI app se scan karo</p>
+                    <p style="font-size: 12px; color: #f59e0b; margin-top: 4px;">⚠️ Payment ke baad admin record karega</p>
+                </div>
+            </div>
         </section>
 
         <!-- History -->
@@ -212,6 +226,18 @@
         el.innerText = message;
     }
 
+    function toggleQR() {
+        const qr = document.getElementById("qrSection");
+        const btn = document.getElementById("payNowBtn");
+        if (qr.style.display === "none") {
+            qr.style.display = "block";
+            btn.innerText = "❌ Close";
+        } else {
+            qr.style.display = "none";
+            btn.innerText = "💳 Pay via UPI";
+        }
+    }
+
     function initDashboard() {
         const role = getRole();
         document.documentElement.className = "role-" + role;
@@ -228,6 +254,7 @@
                 localStorage.getItem("student_id") || "—";
             document.getElementById("pageSubtitle").innerText =
                 "View your bill and meal history";
+            document.getElementById("payNowSection").style.display = "block";
             getBill();
             loadHistory();
         }
@@ -297,13 +324,18 @@
         });
     }
 
+    function formatDate(dateStr) {
+        const d = new Date(dateStr);
+        return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+    }
+
     function renderTable(rows, columns) {
         if (!rows.length) {
             return '<p class="empty">No records found.</p>';
         }
         const headers = columns.map(c => `<th>${c.label}</th>`).join("");
         const body = rows.map(row =>
-            `<tr>${columns.map(c => `<td>${row[c.key] ?? "—"}</td>`).join("")}</tr>`
+            `<tr>${columns.map(c => `<td>${c.key === 'date' ? formatDate(row[c.key]) : (row[c.key] ?? "—")}</td>`).join("")}</tr>`
         ).join("");
         return `<div class="table-wrap"><table><thead><tr>${headers}</tr></thead><tbody>${body}</tbody></table></div>`;
     }
