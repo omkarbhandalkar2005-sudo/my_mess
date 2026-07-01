@@ -221,7 +221,7 @@ app.post('/add-payment', (req, res) => {
 
 // TIFFIN HISTORY
 app.get('/tiffin-history/:id', (req, res) => {
-    const sql = `SELECT date, type, quantity, extra_roti, extra_bhakari
+    const sql = `SELECT id, date, type, quantity, extra_roti, extra_bhakari
                  FROM tiffin WHERE student_id = ?
                  ORDER BY date DESC`;
 
@@ -232,6 +232,24 @@ app.get('/tiffin-history/:id', (req, res) => {
         }
 
         res.json(result);
+    });
+});
+
+// DELETE TIFFIN
+app.delete('/tiffin/:id', (req, res) => {
+    const sql = `DELETE FROM tiffin WHERE id = ?`;
+
+    db.query(sql, [req.params.id], (err, result) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ message: "Error deleting tiffin" });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: "Tiffin record not found" });
+        }
+
+        return res.status(200).json({ message: "Tiffin entry deleted successfully 🗑️" });
     });
 });
 

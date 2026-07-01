@@ -350,15 +350,31 @@
         return d.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
     }
 
-    function renderTable(rows, columns) {
+    function renderTable(rows, columns, deleteFn) {
         if (!rows.length) {
             return '<p class="empty">No records found.</p>';
         }
-        const headers = columns.map(c => `<th>${c.label}</th>`).join("");
+        const headers = columns.map(c => `<th>${c.label}</th>`).join("") + (deleteFn ? "<th></th>" : "");
         const body = rows.map(row =>
-            `<tr>${columns.map(c => `<td>${c.key === 'date' ? formatDate(row[c.key]) : (row[c.key] ?? "—")}</td>`).join("")}</tr>`
+            `<tr>${columns.map(c => `<td>${c.key === 'date' ? formatDate(row[c.key]) : (row[c.key] ?? "—")}</td>`).join("")}${
+                deleteFn ? `<td><button class="btn btn-ghost btn-sm" onclick="${deleteFn}(${row.id})" style="color:#dc2626;">Delete</button></td>` : ""
+            }</tr>`
         ).join("");
         return `<div class="table-wrap"><table><thead><tr>${headers}</tr></thead><tbody>${body}</tbody></table></div>`;
+    }
+
+    function deleteTiffin(id) {
+        if (!confirm("Ye tiffin entry delete karni hai? Ye action undo nahi ho sakta.")) return;
+
+        fetch(`${API}/tiffin/${id}`, { method: "DELETE" })
+        .then(res => res.json())
+        .then(data => {
+            loadHistory();
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Delete failed. Please try again.");
+        });
     }
 
     function getBill() {
@@ -417,7 +433,7 @@
                 { key: "quantity", label: "Qty" },
                 { key: "extra_roti", label: "Roti" },
                 { key: "extra_bhakari", label: "Bhakari" }
-            ]);
+            ], isAdmin() ? "deleteTiffin" : null);
             document.getElementById("payment_history").innerHTML = renderTable(payments, [
                 { key: "date", label: "Date" },
                 { key: "amount_paid", label: "Amount (₹)" }
