@@ -66,7 +66,7 @@ app.post('/send-otp', (req, res) => {
         return res.status(400).json({ message: "Email required" });
     }
 
-    db.query("SELECT id FROM students WHERE email = ?", [email], (err, result) => {
+    db.query("SELECT id FROM customers WHERE email = ?", [email], (err, result) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ message: "Server error" });
@@ -129,10 +129,10 @@ app.post('/register', (req, res) => {
             return res.status(500).json({ message: "Error creating account" });
         }
 
-        const sql = `INSERT INTO students (name, contact, email, password, role)
+        const sql = `INSERT INTO customers (name, contact, email, password, role)
                      VALUES (?, ?, ?, ?, ?)`;
 
-        db.query(sql, [name, contact, email, hash, "student"], (err) => {
+        db.query(sql, [name, contact, email, hash, "customer"], (err) => {
             if (err) {
                 console.error(err);
                 return res.status(500).json({ message: "Error registering user" });
@@ -151,7 +151,7 @@ app.post('/login', (req, res) => {
         return res.status(400).json({ message: "Email and password are required" });
     }
 
-    db.query("SELECT * FROM students WHERE email = ?", [email], (err, result) => {
+    db.query("SELECT * FROM customers WHERE email = ?", [email], (err, result) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ message: "Error logging in" });
@@ -168,8 +168,8 @@ app.post('/login', (req, res) => {
 
             return res.status(200).json({
                 message:    "Login successful",
-                role:       String(result[0].role || "student").toLowerCase().trim(),
-                student_id: result[0].id,
+                role:       String(result[0].role || "customer").toLowerCase().trim(),
+                customer_id: result[0].id,
                 name:       result[0].name,
                 contact:    result[0].contact,
                 email:      result[0].email
@@ -186,7 +186,7 @@ app.post('/forgot-password/send-otp', (req, res) => {
         return res.status(400).json({ message: "Email required" });
     }
 
-    db.query("SELECT id FROM students WHERE email = ?", [email], (err, result) => {
+    db.query("SELECT id FROM customers WHERE email = ?", [email], (err, result) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ message: "Server error" });
@@ -256,7 +256,7 @@ app.post('/forgot-password/reset', (req, res) => {
             return res.status(500).json({ message: "Error resetting password" });
         }
 
-        db.query("UPDATE students SET password = ? WHERE email = ?", [hash, email], (err, result) => {
+        db.query("UPDATE customers SET password = ? WHERE email = ?", [hash, email], (err, result) => {
             if (err) {
                 console.error(err);
                 return res.status(500).json({ message: "Error updating password" });
@@ -273,16 +273,16 @@ app.post('/forgot-password/reset', (req, res) => {
 
 // ADD TIFFIN
 app.post('/add-tiffin', (req, res) => {
-    const { student_id, date, type, quantity, extra_roti, extra_bhakari } = req.body;
+    const { customer_id, date, type, quantity, extra_roti, extra_bhakari } = req.body;
 
-    if (!student_id || !date || !type || quantity == null) {
+    if (!customer_id || !date || !type || quantity == null) {
         return res.status(400).json({ message: "All required fields are mandatory" });
     }
 
-    const sql = `INSERT INTO tiffin (student_id, date, type, quantity, extra_roti, extra_bhakari)
+    const sql = `INSERT INTO tiffin (customer_id, date, type, quantity, extra_roti, extra_bhakari)
                  VALUES (?, ?, ?, ?, ?, ?)`;
 
-    db.query(sql, [student_id, date, type, quantity, extra_roti || 0, extra_bhakari || 0], (err) => {
+    db.query(sql, [customer_id, date, type, quantity, extra_roti || 0, extra_bhakari || 0], (err) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ message: "Error adding tiffin" });
@@ -294,16 +294,16 @@ app.post('/add-tiffin', (req, res) => {
 
 // ADD PAYMENT
 app.post('/add-payment', (req, res) => {
-    const { student_id, amount_paid, date } = req.body;
+    const { customer_id, amount_paid, date } = req.body;
 
-    if (!student_id || !amount_paid || !date) {
+    if (!customer_id || !amount_paid || !date) {
         return res.status(400).json({ message: "All fields are required" });
     }
 
-    const sql = `INSERT INTO payments (student_id, amount_paid, date)
+    const sql = `INSERT INTO payments (customer_id, amount_paid, date)
                  VALUES (?, ?, ?)`;
 
-    db.query(sql, [student_id, amount_paid, date], (err) => {
+    db.query(sql, [customer_id, amount_paid, date], (err) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ message: "Error adding payment" });
@@ -316,7 +316,7 @@ app.post('/add-payment', (req, res) => {
 // TIFFIN HISTORY
 app.get('/tiffin-history/:id', (req, res) => {
     const sql = `SELECT id, date, type, quantity, extra_roti, extra_bhakari
-                 FROM tiffin WHERE student_id = ?
+                 FROM tiffin WHERE customer_id = ?
                  ORDER BY date DESC`;
 
     db.query(sql, [req.params.id], (err, result) => {
@@ -350,7 +350,7 @@ app.delete('/tiffin/:id', (req, res) => {
 // PAYMENT HISTORY
 app.get('/payment-history/:id', (req, res) => {
     const sql = `SELECT date, amount_paid
-                 FROM payments WHERE student_id = ?
+                 FROM payments WHERE customer_id = ?
                  ORDER BY date DESC`;
 
     db.query(sql, [req.params.id], (err, result) => {
@@ -370,10 +370,10 @@ app.get('/final-bill/:id', (req, res) => {
     const tiffinSql = `SELECT SUM(quantity) AS totalTiffin,
                               SUM(extra_roti) AS totalRoti,
                               SUM(extra_bhakari) AS totalBhakari
-                       FROM tiffin WHERE student_id = ?`;
+                       FROM tiffin WHERE customer_id = ?`;
 
     const paymentSql = `SELECT SUM(amount_paid) AS totalPaid
-                        FROM payments WHERE student_id = ?`;
+                        FROM payments WHERE customer_id = ?`;
 
     db.query(tiffinSql, [id], (err, tiffinResult) => {
         if (err) {

@@ -77,10 +77,10 @@ a:hover { color: var(--primary-hover); text-decoration: underline; }
     color: #6d28d9;
 }
 
-body.role-student .admin-only { display: none !important; }
-body.role-admin .student-only { display: none !important; }
-html.role-student .admin-only { display: none !important; }
-html.role-admin .student-only { display: none !important; }
+body.role-customer .admin-only { display: none !important; }
+body.role-admin .customer-only { display: none !important; }
+html.role-customer .admin-only { display: none !important; }
+html.role-admin .customer-only { display: none !important; }
 
 /* ── Buttons ── */
 .btn {
@@ -238,8 +238,8 @@ input::placeholder { color: #94a3b8; }
 .alert-error { background: var(--danger-light); color: var(--danger); }
 .alert-info { background: var(--primary-light); color: var(--primary); }
 
-/* ── Student ID banner ── */
-.student-banner {
+/* ── Customer ID banner ── */
+.customer-banner {
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -249,13 +249,13 @@ input::placeholder { color: #94a3b8; }
     padding: 1rem 1.25rem;
 }
 
-.student-banner-label {
+.customer-banner-label {
     font-size: 0.8125rem;
     opacity: 0.85;
     font-weight: 500;
 }
 
-.student-banner-id {
+.customer-banner-id {
     font-size: 1.5rem;
     font-weight: 700;
     letter-spacing: 0.05em;

@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="styles.css">
     <script>
         document.documentElement.className =
-            "role-" + (localStorage.getItem("role") || "student").toLowerCase().trim();
+            "role-" + (localStorage.getItem("role") || "customer").toLowerCase().trim();
     </script>
 </head>
 <body>
@@ -33,8 +33,8 @@
 
     <div class="grid">
 
-        <!-- Student profile -->
-        <section class="card student-only" id="studentIdSection">
+        <!-- Customer profile -->
+        <section class="card customer-only" id="customerIdSection">
             <div class="card-header">
                 <div class="card-icon">
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
@@ -43,10 +43,10 @@
                 </div>
                 <h2>Your Account</h2>
             </div>
-            <div class="student-banner">
+            <div class="customer-banner">
                 <div>
-                    <div class="student-banner-label">Student ID</div>
-                    <div class="student-banner-id" id="display_student_id"></div>
+                    <div class="customer-banner-label">Customer ID</div>
+                    <div class="customer-banner-id" id="display_customer_id"></div>
                 </div>
                 <svg width="32" height="32" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" viewBox="0 0 24 24">
                     <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>
@@ -81,8 +81,8 @@
             </div>
 
             <div class="form-group">
-                <label for="student_id">Student ID</label>
-                <input type="number" id="student_id" placeholder="Enter student ID">
+                <label for="customer_id">Customer ID</label>
+                <input type="number" id="customer_id" placeholder="Enter customer ID">
             </div>
 
             <div class="form-row">
@@ -131,8 +131,8 @@
             </div>
 
             <div class="form-group">
-                <label for="pay_student_id">Student ID</label>
-                <input type="number" id="pay_student_id" placeholder="Enter student ID">
+                <label for="pay_customer_id">Customer ID</label>
+                <input type="number" id="pay_customer_id" placeholder="Enter customer ID">
             </div>
 
             <div class="form-row">
@@ -163,15 +163,15 @@
             </div>
 
             <div class="form-group admin-only" id="billLookupGroup">
-                <label for="bill_student_id">Student ID</label>
-                <input type="number" id="bill_student_id" placeholder="Enter student ID">
+                <label for="bill_customer_id">Customer ID</label>
+                <input type="number" id="bill_customer_id" placeholder="Enter customer ID">
             </div>
 
             <button class="btn btn-primary admin-only" onclick="getBill()">View Bill</button>
             <div id="bill_result"></div>
 
-            <!-- UPI Pay Button - Student Only -->
-            <div class="student-only" id="payNowSection" style="margin-top: 1rem; display: none;">
+            <!-- UPI Pay Button - Customer Only -->
+            <div class="customer-only" id="payNowSection" style="margin-top: 1rem; display: none;">
                 <button class="btn btn-primary" onclick="toggleQR()" id="payNowBtn" style="width: 100%;">
                     💳 Pay via UPI
                 </button>
@@ -197,8 +197,8 @@
             </div>
 
             <div class="form-group admin-only" id="historyLookupGroup">
-                <label for="history_student_id">Student ID</label>
-                <input type="number" id="history_student_id" placeholder="Enter student ID">
+                <label for="history_customer_id">Customer ID</label>
+                <input type="number" id="history_customer_id" placeholder="Enter customer ID">
             </div>
 
             <button class="btn btn-primary admin-only" style="max-width:200px" onclick="loadHistory()">Load History</button>
@@ -221,18 +221,18 @@
     }
 
     function getRole() {
-        return (localStorage.getItem("role") || "student").toLowerCase().trim();
+        return (localStorage.getItem("role") || "customer").toLowerCase().trim();
     }
 
     function isAdmin() {
         return getRole() === "admin";
     }
 
-    function getStudentId(inputId) {
+    function getCustomerId(inputId) {
         if (isAdmin()) {
             return document.getElementById(inputId).value;
         }
-        return localStorage.getItem("student_id");
+        return localStorage.getItem("customer_id");
     }
 
     function showAlert(elId, message, type) {
@@ -263,10 +263,10 @@
         if (isAdmin()) {
             badge.classList.add("admin");
             document.getElementById("pageSubtitle").innerText =
-                "Manage tiffins, payments, and billing for all students";
+                "Manage tiffins, payments, and billing for all customers";
         } else {
-            document.getElementById("display_student_id").innerText =
-                localStorage.getItem("student_id") || "—";
+            document.getElementById("display_customer_id").innerText =
+                localStorage.getItem("customer_id") || "—";
             document.getElementById("display_name").innerText =
                 localStorage.getItem("name") || "—";
             document.getElementById("display_contact").innerText =
@@ -292,7 +292,7 @@
         document.getElementById("addBtn").disabled = true;
 
         const data = {
-            student_id: document.getElementById("student_id").value,
+            customer_id: document.getElementById("customer_id").value,
             date: document.getElementById("date").value,
             type: document.getElementById("type").value,
             quantity: document.getElementById("quantity").value,
@@ -322,7 +322,7 @@
         document.getElementById("payBtn").disabled = true;
 
         const data = {
-            student_id: document.getElementById("pay_student_id").value,
+            customer_id: document.getElementById("pay_customer_id").value,
             amount_paid: document.getElementById("amount_paid").value,
             date: document.getElementById("pay_date").value
         };
@@ -378,7 +378,7 @@
     }
 
     function getBill() {
-        const id = getStudentId("bill_student_id");
+        const id = getCustomerId("bill_customer_id");
         if (!id) return;
 
         fetch(`${API}/final-bill/${id}`)
@@ -419,7 +419,7 @@
     }
 
     function loadHistory() {
-        const id = getStudentId("history_student_id");
+        const id = getCustomerId("history_customer_id");
         if (!id) return;
 
         Promise.all([

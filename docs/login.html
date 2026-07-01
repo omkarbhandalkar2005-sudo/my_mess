@@ -76,7 +76,7 @@ function login() {
     if (res.ok) {
         localStorage.setItem("loggedIn", "true");
         localStorage.setItem("role", String(payload.role).toLowerCase().trim());
-        localStorage.setItem("student_id", payload.student_id);
+        localStorage.setItem("customer_id", payload.customer_id);
         localStorage.setItem("name", payload.name || "");
         localStorage.setItem("contact", payload.contact || "");
         localStorage.setItem("email", payload.email || "");
