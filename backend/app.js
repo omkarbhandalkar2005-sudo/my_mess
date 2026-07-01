@@ -13,8 +13,7 @@ const TIFFIN_PRICE  = 70;
 const ROTI_PRICE    = 15;
 const BHAKARI_PRICE = 20;
 
-const otpStore      = {};
-const resetOtpStore = {};
+const otpStore = {};
 
 // Brevo API se email bhejo
 function sendEmail(to, subject, htmlContent, callback) {
@@ -58,7 +57,7 @@ app.get('/', (req, res) => {
     res.status(200).send("The server is up and running 🚀");
 });
 
-// SEND OTP (registration)
+// SEND OTP
 app.post('/send-otp', (req, res) => {
     const { email } = req.body;
 
@@ -170,101 +169,10 @@ app.post('/login', (req, res) => {
                 message:    "Login successful",
                 role:       String(result[0].role || "student").toLowerCase().trim(),
                 student_id: result[0].id,
-                name:       result[0].name
+                name:       result[0].name,
+                contact:    result[0].contact,
+                email:      result[0].email
             });
-        });
-    });
-});
-
-// FORGOT PASSWORD - SEND OTP
-app.post('/forgot-password/send-otp', (req, res) => {
-    const { email } = req.body;
-
-    if (!email) {
-        return res.status(400).json({ message: "Email required" });
-    }
-
-    db.query("SELECT id FROM students WHERE email = ?", [email], (err, result) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ message: "Server error" });
-        }
-
-        // Security: same message chahe email exist kare ya na kare, taaki koi ye pata na laga sake
-        // ki kaunse emails registered hain. Lekin OTP sirf tabhi bhejenge jab email exist kare.
-        if (result.length === 0) {
-            return res.status(200).json({ message: "Agar ye email registered hai, to OTP bhej diya gaya hai ✅" });
-        }
-
-        const otp    = Math.floor(100000 + Math.random() * 900000).toString();
-        const expiry = Date.now() + 5 * 60 * 1000;
-
-        resetOtpStore[email] = { otp, expiry };
-
-        const html = `
-            <h2>Mess Tracker - Password Reset</h2>
-            <p>Your OTP to reset your password is:</p>
-            <h1 style="color: #4CAF50; letter-spacing: 5px;">${otp}</h1>
-            <p>This OTP will expire in 5 minutes.</p>
-            <p>Agar tumne ye request nahi ki, to is email ko ignore kar do.</p>
-        `;
-
-        sendEmail(email, "Mess Tracker - Password Reset OTP", html, (err) => {
-            if (err) {
-                console.error(err);
-                return res.status(500).json({ message: "Error sending OTP" });
-            }
-            return res.status(200).json({ message: "Agar ye email registered hai, to OTP bhej diya gaya hai ✅" });
-        });
-    });
-});
-
-// FORGOT PASSWORD - VERIFY OTP & RESET
-app.post('/forgot-password/reset', (req, res) => {
-    const { email, otp, newPassword } = req.body;
-
-    if (!email || !otp || !newPassword) {
-        return res.status(400).json({ message: "All fields are required" });
-    }
-
-    if (newPassword.length < 6) {
-        return res.status(400).json({ message: "Password kam se kam 6 characters ka hona chahiye" });
-    }
-
-    const stored = resetOtpStore[email];
-
-    if (!stored) {
-        return res.status(400).json({ message: "Pehle OTP bhejo" });
-    }
-
-    if (Date.now() > stored.expiry) {
-        delete resetOtpStore[email];
-        return res.status(400).json({ message: "OTP expire ho gaya, dobara bhejo" });
-    }
-
-    if (stored.otp !== otp) {
-        return res.status(400).json({ message: "Galat OTP" });
-    }
-
-    delete resetOtpStore[email];
-
-    bcrypt.hash(newPassword, 10, (err, hash) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ message: "Error resetting password" });
-        }
-
-        db.query("UPDATE students SET password = ? WHERE email = ?", [hash, email], (err, result) => {
-            if (err) {
-                console.error(err);
-                return res.status(500).json({ message: "Error updating password" });
-            }
-
-            if (result.affectedRows === 0) {
-                return res.status(404).json({ message: "Account not found" });
-            }
-
-            return res.status(200).json({ message: "Password reset successful ✅ Ab login kar sakte ho" });
         });
     });
 });

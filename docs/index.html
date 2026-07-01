@@ -52,6 +52,21 @@
                     <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>
                 </svg>
             </div>
+
+            <div class="stats-grid" style="margin-top: 1rem;">
+                <div class="stat-card">
+                    <div class="stat-label">Name</div>
+                    <div class="stat-value" id="display_name" style="font-size: 1rem;">—</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-label">Phone</div>
+                    <div class="stat-value" id="display_contact" style="font-size: 1rem;">—</div>
+                </div>
+                <div class="stat-card grid-full">
+                    <div class="stat-label">Email</div>
+                    <div class="stat-value" id="display_email" style="font-size: 1rem;">—</div>
+                </div>
+            </div>
         </section>
 
         <!-- Add Tiffin (Admin) -->
@@ -252,6 +267,12 @@
         } else {
             document.getElementById("display_student_id").innerText =
                 localStorage.getItem("student_id") || "—";
+            document.getElementById("display_name").innerText =
+                localStorage.getItem("name") || "—";
+            document.getElementById("display_contact").innerText =
+                localStorage.getItem("contact") || "—";
+            document.getElementById("display_email").innerText =
+                localStorage.getItem("email") || "—";
             document.getElementById("pageSubtitle").innerText =
                 "View your bill and meal history";
             document.getElementById("payNowSection").style.display = "block";
