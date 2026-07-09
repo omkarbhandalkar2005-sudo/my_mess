@@ -10,6 +10,7 @@ app.use(cors());
 app.use(express.json());
 
 const TIFFIN_PRICE  = 70;
+const FAST_PRICE    = 40;
 const ROTI_PRICE    = 15;
 const BHAKARI_PRICE = 20;
 
@@ -367,7 +368,9 @@ app.get('/payment-history/:id', (req, res) => {
 app.get('/final-bill/:id', (req, res) => {
     const id = req.params.id;
 
-    const tiffinSql = `SELECT SUM(quantity) AS totalTiffin,
+    const tiffinSql = `SELECT
+                              SUM(CASE WHEN type = 'Fast' THEN quantity ELSE 0 END) AS fastTiffin,
+                              SUM(CASE WHEN type != 'Fast' THEN quantity ELSE 0 END) AS regularTiffin,
                               SUM(extra_roti) AS totalRoti,
                               SUM(extra_bhakari) AS totalBhakari
                        FROM tiffin WHERE customer_id = ?`;
@@ -388,17 +391,19 @@ app.get('/final-bill/:id', (req, res) => {
             }
 
             const t = tiffinResult[0] || {};
+            const totalTiffin = (t.fastTiffin || 0) + (t.regularTiffin || 0);
 
             const totalAmount =
-                (t.totalTiffin  || 0) * TIFFIN_PRICE  +
-                (t.totalRoti    || 0) * ROTI_PRICE     +
-                (t.totalBhakari || 0) * BHAKARI_PRICE;
+                (t.regularTiffin || 0) * TIFFIN_PRICE  +
+                (t.fastTiffin    || 0) * FAST_PRICE    +
+                (t.totalRoti     || 0) * ROTI_PRICE    +
+                (t.totalBhakari  || 0) * BHAKARI_PRICE;
 
             const totalPaid = paymentResult[0].totalPaid || 0;
             const pending   = totalAmount - totalPaid;
 
             res.status(200).json({
-                totalTiffin:  t.totalTiffin  || 0,
+                totalTiffin:  totalTiffin,
                 extraRoti:    t.totalRoti    || 0,
                 extraBhakari: t.totalBhakari || 0,
                 totalAmount,
