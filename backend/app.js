@@ -391,7 +391,7 @@ app.get('/final-bill/:id', (req, res) => {
             }
 
             const t = tiffinResult[0] || {};
-            const totalTiffin = (t.fastTiffin || 0) + (t.regularTiffin || 0);
+            const totalTiffin = Number(t.fastTiffin || 0) + Number(t.regularTiffin || 0);
 
             const totalAmount =
                 (t.regularTiffin || 0) * TIFFIN_PRICE  +
@@ -455,7 +455,7 @@ app.get('/all-customers-summary', (req, res) => {
 
                 const summary = customers.map(c => {
                     const t = tiffinMap[c.id] || {};
-                    const totalTiffin = (t.fastTiffin || 0) + (t.regularTiffin || 0);
+                    const totalTiffin = Number(t.fastTiffin || 0) + Number(t.regularTiffin || 0);
 
                     const totalAmount =
                         (t.regularTiffin || 0) * TIFFIN_PRICE  +
