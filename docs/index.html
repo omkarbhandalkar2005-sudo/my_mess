@@ -186,6 +186,20 @@
             </div>
         </section>
 
+        <!-- All Customers (Admin) -->
+        <section class="card grid-full admin-only" id="allCustomersSection">
+            <div class="card-header">
+                <div class="card-icon">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                    </svg>
+                </div>
+                <h2>All Customers</h2>
+            </div>
+            <div id="allCustomersList"></div>
+        </section>
+
         <!-- History -->
         <section class="card grid-full">
             <div class="card-header">
@@ -229,6 +243,40 @@
         return getRole() === "admin";
     }
 
+    function loadAllCustomers() {
+        const container = document.getElementById("allCustomersList");
+        container.innerHTML = '<p class="empty">Loading...</p>';
+
+        fetch(`${API}/all-customers-summary`)
+        .then(res => res.json())
+        .then(data => {
+            if (!data.length) {
+                container.innerHTML = '<p class="empty">No customers found.</p>';
+                return;
+            }
+
+            const rows = data.map(c => `<tr>
+                <td>${c.id}</td>
+                <td>${c.name}</td>
+                <td>${c.totalTiffin}</td>
+                <td>₹${c.totalAmount}</td>
+                <td>₹${c.totalPaid}</td>
+                <td style="color:${c.pending > 0 ? '#dc2626' : '#16a34a'};">₹${c.pending}</td>
+            </tr>`).join("");
+
+            container.innerHTML = `<div class="table-wrap"><table>
+                <thead><tr>
+                    <th>ID</th><th>Name</th><th>Total Tiffins</th><th>Total Bill</th><th>Paid</th><th>Pending</th>
+                </tr></thead>
+                <tbody>${rows}</tbody>
+            </table></div>`;
+        })
+        .catch(err => {
+            console.error(err);
+            container.innerHTML = '<p class="empty">Failed to load customer list.</p>';
+        });
+    }
+
     function getCustomerId(inputId) {
         if (isAdmin()) {
             return document.getElementById(inputId).value;
@@ -265,6 +313,7 @@
             badge.classList.add("admin");
             document.getElementById("pageSubtitle").innerText =
                 "Manage tiffins, payments, and billing for all customers";
+            loadAllCustomers();
         } else {
             document.getElementById("display_customer_id").innerText =
                 localStorage.getItem("customer_id") || "—";

@@ -415,6 +415,73 @@ app.get('/final-bill/:id', (req, res) => {
     });
 });
 
+// ALL CUSTOMERS SUMMARY (Admin list — name, id, total tiffins, total bill)
+app.get('/all-customers-summary', (req, res) => {
+    const customersSql = `SELECT id, name FROM customers WHERE role = 'customer' ORDER BY id ASC`;
+
+    const tiffinSql = `SELECT customer_id,
+                              SUM(CASE WHEN type = 'Fast' THEN quantity ELSE 0 END) AS fastTiffin,
+                              SUM(CASE WHEN type != 'Fast' THEN quantity ELSE 0 END) AS regularTiffin,
+                              SUM(extra_roti) AS totalRoti,
+                              SUM(extra_bhakari) AS totalBhakari
+                       FROM tiffin GROUP BY customer_id`;
+
+    const paymentSql = `SELECT customer_id, SUM(amount_paid) AS totalPaid
+                        FROM payments GROUP BY customer_id`;
+
+    db.query(customersSql, (err, customers) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ message: "Error fetching customers" });
+        }
+
+        db.query(tiffinSql, (err, tiffinRows) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ message: "Error fetching tiffin data" });
+            }
+
+            db.query(paymentSql, (err, paymentRows) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({ message: "Error fetching payment data" });
+                }
+
+                const tiffinMap  = {};
+                tiffinRows.forEach(row => { tiffinMap[row.customer_id] = row; });
+
+                const paymentMap = {};
+                paymentRows.forEach(row => { paymentMap[row.customer_id] = row.totalPaid || 0; });
+
+                const summary = customers.map(c => {
+                    const t = tiffinMap[c.id] || {};
+                    const totalTiffin = (t.fastTiffin || 0) + (t.regularTiffin || 0);
+
+                    const totalAmount =
+                        (t.regularTiffin || 0) * TIFFIN_PRICE  +
+                        (t.fastTiffin    || 0) * FAST_PRICE    +
+                        (t.totalRoti     || 0) * ROTI_PRICE    +
+                        (t.totalBhakari  || 0) * BHAKARI_PRICE;
+
+                    const totalPaid = paymentMap[c.id] || 0;
+                    const pending   = totalAmount - totalPaid;
+
+                    return {
+                        id: c.id,
+                        name: c.name,
+                        totalTiffin,
+                        totalAmount,
+                        totalPaid,
+                        pending
+                    };
+                });
+
+                res.status(200).json(summary);
+            });
+        });
+    });
+});
+
 // SERVER
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
