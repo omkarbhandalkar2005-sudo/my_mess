@@ -304,7 +304,8 @@
 
     function initDashboard() {
         const role = getRole();
-        document.documentElement.className = "role-" + role;
+        document.documentElement.classList.remove("role-admin", "role-customer");
+        document.documentElement.classList.add("role-" + role);
         document.body.classList.add("role-" + role);
 
         const badge = document.getElementById("roleBadge");

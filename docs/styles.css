@@ -1,23 +1,24 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-    --bg: #f1f5f9;
-    --surface: #ffffff;
-    --border: #e2e8f0;
-    --text: #0f172a;
-    --text-muted: #64748b;
-    --primary: #0f766e;
-    --primary-hover: #0d9488;
-    --primary-light: #ccfbf1;
-    --danger: #dc2626;
-    --danger-light: #fef2f2;
-    --success: #059669;
-    --success-light: #ecfdf5;
-    --warning: #d97706;
-    --shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 4px 12px rgba(15, 23, 42, 0.06);
-    --shadow-lg: 0 4px 6px rgba(15, 23, 42, 0.05), 0 12px 28px rgba(15, 23, 42, 0.1);
+    --bg: #0f172a;
+    --surface: #1e293b;
+    --border: #334155;
+    --text: #f1f5f9;
+    --text-muted: #94a3b8;
+    --primary: #2dd4bf;
+    --primary-hover: #5eead4;
+    --primary-light: rgba(45, 212, 191, 0.15);
+    --danger: #f87171;
+    --danger-light: rgba(248, 113, 113, 0.12);
+    --success: #34d399;
+    --success-light: rgba(52, 211, 153, 0.12);
+    --warning: #fbbf24;
+    --shadow: 0 1px 3px rgba(0, 0, 0, 0.4), 0 4px 12px rgba(0, 0, 0, 0.3);
+    --shadow-lg: 0 4px 6px rgba(0, 0, 0, 0.3), 0 12px 28px rgba(0, 0, 0, 0.45);
     --radius: 12px;
     --radius-sm: 8px;
+    color-scheme: dark;
 }
 
 *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
@@ -422,4 +423,27 @@ tbody tr:hover { background: #f8fafc; }
     .form-row { grid-template-columns: 1fr; }
     .page { padding: 1.25rem 1rem 2rem; }
     .navbar { padding: 0 1rem; }
+}
+
+/* ── Dark theme adjustments ── */
+.btn-primary {
+    background: #0d9488;
+    color: #ffffff;
+}
+.btn-primary:hover:not(:disabled) { background: #14b8a6; }
+
+tbody tr:hover { background: rgba(148, 163, 184, 0.08); }
+
+input::placeholder { color: #64748b; }
+
+.stat-card.highlight { border-color: rgba(45, 212, 191, 0.35); }
+.stat-card.danger { border-color: rgba(248, 113, 113, 0.3); }
+
+.role-badge.admin { background: rgba(139, 92, 246, 0.18); color: #a78bfa; }
+.card-icon.purple { background: rgba(139, 92, 246, 0.18); color: #a78bfa; }
+.card-icon.amber { background: rgba(217, 119, 6, 0.18); color: #fbbf24; }
+.card-icon.blue { background: rgba(37, 99, 235, 0.2); color: #60a5fa; }
+
+.auth-page {
+    background: linear-gradient(160deg, #0f172a 0%, #1e293b 100%);
 }
