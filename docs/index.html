@@ -3,6 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Mess Tracker dashboard — manage tiffin bookings, payments, and billing.">
     <title>Dashboard — Mess Tracker</title>
     <link rel="stylesheet" href="styles.css">
     <script>
@@ -12,12 +13,12 @@
 </head>
 <body>
 
-<nav class="navbar">
+<nav class="navbar" aria-label="Main navigation">
     <div class="navbar-brand">
-        <svg width="22" height="22" fill="none" stroke="#0f766e" stroke-width="2" viewBox="0 0 24 24">
+        <svg width="22" height="22" fill="none" stroke="var(--primary)" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
             <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
         </svg>
-        Mess Tracker
+        <span>Mess Tracker</span>
     </div>
     <div class="navbar-actions">
         <span class="role-badge" id="roleBadge"></span>
@@ -34,66 +35,68 @@
     <div class="grid">
 
         <!-- Today's Meals (Customer) -->
-        <section class="card grid-full customer-only" id="todaysMealsSection">
+        <section class="card grid-full customer-only" id="todaysMealsSection" aria-labelledby="todaysMealsHeading">
             <div class="card-header">
-                <div class="card-icon amber">
+                <div class="card-icon amber" aria-hidden="true">
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M3 2v7c0 1.1.9 2 2 2h1a2 2 0 0 0 2-2V2M7 2v20M17 2v20M17 2a5 5 0 0 1 0 10"/>
                     </svg>
                 </div>
-                <h2>Today's Meals</h2>
+                <div>
+                    <h2 id="todaysMealsHeading">Today's Meals</h2>
+                    <p class="subsection-title" id="todayDateLabel" style="margin: 0.125rem 0 0;">&nbsp;</p>
+                </div>
             </div>
-            <p class="subsection-title" id="todayDateLabel" style="margin-top:-0.75rem;">&nbsp;</p>
-            <div class="meals-grid" id="todaysMealsList">
+            <div class="meals-grid" id="todaysMealsList" aria-live="polite">
                 <p class="empty">Loading...</p>
             </div>
         </section>
 
         <!-- Customer profile -->
-        <section class="card customer-only" id="customerIdSection">
+        <section class="card customer-only" id="customerIdSection" aria-labelledby="accountHeading">
             <div class="card-header">
-                <div class="card-icon">
+                <div class="card-icon" aria-hidden="true">
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
                     </svg>
                 </div>
-                <h2>Your Account</h2>
+                <h2 id="accountHeading">Your Account</h2>
             </div>
             <div class="customer-banner">
                 <div>
                     <div class="customer-banner-label">Customer ID</div>
                     <div class="customer-banner-id" id="display_customer_id"></div>
                 </div>
-                <svg width="32" height="32" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" viewBox="0 0 24 24">
+                <svg width="32" height="32" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
                     <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>
                 </svg>
             </div>
 
-            <div class="stats-grid" style="margin-top: 1rem;">
+            <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-label">Name</div>
-                    <div class="stat-value" id="display_name" style="font-size: 1rem;">—</div>
+                    <div class="stat-value" id="display_name" style="font-size: var(--text-base);">—</div>
                 </div>
                 <div class="stat-card">
                     <div class="stat-label">Phone</div>
-                    <div class="stat-value" id="display_contact" style="font-size: 1rem;">—</div>
+                    <div class="stat-value" id="display_contact" style="font-size: var(--text-base);">—</div>
                 </div>
                 <div class="stat-card grid-full">
                     <div class="stat-label">Email</div>
-                    <div class="stat-value" id="display_email" style="font-size: 1rem;">—</div>
+                    <div class="stat-value" id="display_email" style="font-size: var(--text-base);">—</div>
                 </div>
             </div>
         </section>
 
         <!-- Add Tiffin (Admin) -->
-        <section class="card admin-only" id="addSection">
+        <section class="card admin-only" id="addSection" aria-labelledby="addTiffinHeading">
             <div class="card-header">
-                <div class="card-icon">
+                <div class="card-icon" aria-hidden="true">
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M18 8h1a4 4 0 0 1 0 8h-1M2 8h16v9a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4V8z"/>
                     </svg>
                 </div>
-                <h2>Add Tiffin</h2>
+                <h2 id="addTiffinHeading">Add Tiffin</h2>
             </div>
 
             <div class="form-group">
@@ -133,18 +136,18 @@
             </div>
 
             <button class="btn btn-primary" id="addBtn" onclick="addTiffin()">Add Tiffin</button>
-            <div id="result"></div>
+            <div id="result" aria-live="polite"></div>
         </section>
 
         <!-- Record Payment (Admin) -->
-        <section class="card admin-only" id="paymentSection">
+        <section class="card admin-only" id="paymentSection" aria-labelledby="paymentHeading">
             <div class="card-header">
-                <div class="card-icon purple">
+                <div class="card-icon purple" aria-hidden="true">
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                     </svg>
                 </div>
-                <h2>Record Payment</h2>
+                <h2 id="paymentHeading">Record Payment</h2>
             </div>
 
             <div class="form-group">
@@ -164,19 +167,19 @@
             </div>
 
             <button class="btn btn-primary" id="payBtn" onclick="addPayment()">Record Payment</button>
-            <div id="pay_result"></div>
+            <div id="pay_result" aria-live="polite"></div>
         </section>
 
         <!-- Bill -->
-        <section class="card">
+        <section class="card" aria-labelledby="billHeading">
             <div class="card-header">
-                <div class="card-icon amber">
+                <div class="card-icon amber" aria-hidden="true">
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
                         <polyline points="14 2 14 8 20 8"/>
                     </svg>
                 </div>
-                <h2>Bill Summary</h2>
+                <h2 id="billHeading">Bill Summary</h2>
             </div>
 
             <div class="form-group admin-only" id="billLookupGroup">
@@ -185,60 +188,60 @@
             </div>
 
             <button class="btn btn-primary admin-only" onclick="getBill()">View Bill</button>
-            <div id="bill_result"></div>
+            <div id="bill_result" aria-live="polite"></div>
 
             <!-- UPI Pay Button - Customer Only -->
             <div class="customer-only" id="payNowSection" style="margin-top: 1rem; display: none;">
-                <button class="btn btn-primary" onclick="toggleQR()" id="payNowBtn" style="width: 100%;">
+                <button class="btn btn-primary" onclick="toggleQR()" id="payNowBtn">
                     💳 Pay via UPI
                 </button>
 
                 <div id="qrSection" style="display: none; margin-top: 1rem; text-align: center;">
-                    <img src="PhonPay_QR.png" alt="UPI QR Code" style="width: 200px; height: 200px; border-radius: 12px; border: 1px solid #e5e7eb;">
-                    <p style="margin-top: 8px; font-size: 14px; color: #6b7280;">UPI ID: <strong>9021081442@axl</strong></p>
-                    <p style="font-size: 12px; color: #9ca3af;">You can scan QR code using any UPI app</p>
-                    <p style="font-size: 12px; color: #f59e0b; margin-top: 4px;">⚠️ Admin will record after payment</p>
+                    <img src="PhonPay_QR.png" alt="UPI QR code for Mess Tracker payment" style="width: 200px; height: 200px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                    <p style="margin-top: 8px; font-size: var(--text-sm); color: var(--text-muted);">UPI ID: <strong>9021081442@axl</strong></p>
+                    <p style="font-size: var(--text-xs); color: var(--text-muted);">You can scan QR code using any UPI app</p>
+                    <p style="font-size: var(--text-xs); color: var(--warning); margin-top: 4px;">⚠️ Admin will record after payment</p>
                 </div>
             </div>
         </section>
 
         <!-- All Customers (Admin) -->
-        <section class="card grid-full admin-only" id="allCustomersSection">
+        <section class="card grid-full admin-only" id="allCustomersSection" aria-labelledby="allCustomersHeading">
             <div class="card-header">
-                <div class="card-icon">
+                <div class="card-icon" aria-hidden="true">
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
                         <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
                     </svg>
                 </div>
-                <h2>All Customers</h2>
+                <h2 id="allCustomersHeading">All Customers</h2>
             </div>
-            <div id="allCustomersList"></div>
+            <div id="allCustomersList" aria-live="polite"></div>
         </section>
 
         <!-- Today's Booking Requests (Admin) -->
-        <section class="card grid-full admin-only" id="bookingsSection">
+        <section class="card grid-full admin-only" id="bookingsSection" aria-labelledby="bookingsHeading">
             <div class="card-header">
-                <div class="card-icon amber">
+                <div class="card-icon amber" aria-hidden="true">
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M3 2v7c0 1.1.9 2 2 2h1a2 2 0 0 0 2-2V2M7 2v20M17 2v20M17 2a5 5 0 0 1 0 10"/>
                     </svg>
                 </div>
-                <h2>Today's Booking Requests</h2>
+                <h2 id="bookingsHeading">Today's Booking Requests</h2>
             </div>
-            <div id="bookingsList"></div>
+            <div id="bookingsList" aria-live="polite"></div>
         </section>
 
         <!-- Today's Menu (Admin) -->
-        <section class="card grid-full admin-only" id="menuManageSection">
+        <section class="card grid-full admin-only" id="menuManageSection" aria-labelledby="menuManageHeading">
             <div class="card-header">
-                <div class="card-icon blue">
+                <div class="card-icon blue" aria-hidden="true">
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                     </svg>
                 </div>
-                <h2>Today's Menu</h2>
+                <h2 id="menuManageHeading">Today's Menu</h2>
             </div>
 
             <div class="form-group">
@@ -279,18 +282,18 @@
             </div>
 
             <button class="btn btn-primary btn-lg" id="saveMenuBtn" onclick="saveMenuDay()">💾 Save Changes</button>
-            <div id="menu_save_result"></div>
+            <div id="menu_save_result" aria-live="polite"></div>
         </section>
 
         <!-- History -->
-        <section class="card grid-full">
+        <section class="card grid-full" aria-labelledby="historyHeading">
             <div class="card-header">
-                <div class="card-icon blue">
+                <div class="card-icon blue" aria-hidden="true">
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
                         <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
                     </svg>
                 </div>
-                <h2>Activity History</h2>
+                <h2 id="historyHeading">Activity History</h2>
             </div>
 
             <div class="form-group admin-only" id="historyLookupGroup">
@@ -301,10 +304,10 @@
             <button class="btn btn-primary admin-only" style="max-width:200px" onclick="loadHistory()">Load History</button>
 
             <p class="subsection-title">Tiffin records</p>
-            <div id="tiffin_history"></div>
+            <div id="tiffin_history" aria-live="polite"></div>
 
             <p class="subsection-title">Payment records</p>
-            <div id="payment_history"></div>
+            <div id="payment_history" aria-live="polite"></div>
         </section>
 
     </div>
