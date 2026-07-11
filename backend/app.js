@@ -17,6 +17,20 @@ const BHAKARI_PRICE = 20;
 const otpStore      = {};
 const resetOtpStore = {};
 
+// Server UTC time pe chalta hai (Railway), isliye IST (India) date/day nikalne ke liye ye helper
+function getIST() {
+    const now        = new Date();
+    const utcMs      = now.getTime() + (now.getTimezoneOffset() * 60000);
+    const istMs       = utcMs + (5.5 * 60 * 60000);
+    const ist        = new Date(istMs);
+    const days       = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+    const yyyy       = ist.getFullYear();
+    const mm         = String(ist.getMonth() + 1).padStart(2, '0');
+    const dd         = String(ist.getDate()).padStart(2, '0');
+
+    return { date: `${yyyy}-${mm}-${dd}`, day: days[ist.getDay()] };
+}
+
 // Brevo API se email bhejo
 function sendEmail(to, subject, htmlContent, callback) {
     const data = JSON.stringify({
@@ -479,6 +493,226 @@ app.get('/all-customers-summary', (req, res) => {
                 res.status(200).json(summary);
             });
         });
+    });
+});
+
+// ============================================================
+// TODAY'S MEAL BOOKING SYSTEM
+// ============================================================
+
+// GET today's menu + this customer's booking status for Lunch & Dinner
+app.get('/menu/today/:customer_id', (req, res) => {
+    const { date, day } = getIST();
+    const customerId = req.params.customer_id;
+
+    db.query("SELECT meal_type, menu_text, meal_time FROM daily_menus WHERE day_of_week = ?", [day], (err, menuRows) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ message: "Error fetching menu" });
+        }
+
+        db.query(
+            "SELECT id, meal_type, status FROM bookings WHERE customer_id = ? AND booking_date = ?",
+            [customerId, date],
+            (err, bookingRows) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({ message: "Error fetching bookings" });
+                }
+
+                const menuMap = {};
+                menuRows.forEach(r => { menuMap[r.meal_type] = r; });
+
+                const bookingMap = {};
+                bookingRows.forEach(r => { bookingMap[r.meal_type] = r; });
+
+                const result = { date, day };
+
+                ["Lunch", "Dinner"].forEach(meal => {
+                    const m = menuMap[meal] || {};
+                    const b = bookingMap[meal] || null;
+                    result[meal.toLowerCase()] = {
+                        menu_text: m.menu_text || null,
+                        meal_time: m.meal_time || null,
+                        status: b ? b.status : null
+                    };
+                });
+
+                res.status(200).json(result);
+            }
+        );
+    });
+});
+
+// CUSTOMER: Book a tiffin for today (Lunch/Dinner)
+app.post('/bookings', (req, res) => {
+    const { customer_id, meal_type } = req.body;
+
+    if (!customer_id || !meal_type) {
+        return res.status(400).json({ message: "Customer ID and meal type are required" });
+    }
+
+    if (!["Lunch", "Dinner"].includes(meal_type)) {
+        return res.status(400).json({ message: "Invalid meal type" });
+    }
+
+    const { date } = getIST();
+
+    db.query(
+        "SELECT id, status FROM bookings WHERE customer_id = ? AND booking_date = ? AND meal_type = ?",
+        [customer_id, date, meal_type],
+        (err, rows) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ message: "Server error" });
+            }
+
+            if (rows.length > 0) {
+                const existing = rows[0];
+
+                if (existing.status === 'pending' || existing.status === 'approved') {
+                    return res.status(409).json({ message: "Already requested for today" });
+                }
+
+                // Purani rejected booking thi, use pending pe reset kar do (rebook)
+                db.query(
+                    "UPDATE bookings SET status = 'pending', created_at = CURRENT_TIMESTAMP WHERE id = ?",
+                    [existing.id],
+                    (err) => {
+                        if (err) {
+                            console.error(err);
+                            return res.status(500).json({ message: "Error creating booking" });
+                        }
+                        return res.status(200).json({ message: "Booking request sent ✅" });
+                    }
+                );
+                return;
+            }
+
+            db.query(
+                "INSERT INTO bookings (customer_id, booking_date, meal_type, status) VALUES (?, ?, ?, 'pending')",
+                [customer_id, date, meal_type],
+                (err) => {
+                    if (err) {
+                        console.error(err);
+                        return res.status(500).json({ message: "Error creating booking" });
+                    }
+                    return res.status(201).json({ message: "Booking request sent ✅" });
+                }
+            );
+        }
+    );
+});
+
+// ADMIN: Get today's booking requests (all customers)
+app.get('/admin/bookings/today', (req, res) => {
+    const { date } = getIST();
+
+    const sql = `SELECT b.id, b.customer_id, c.name, b.meal_type, b.status, b.created_at
+                 FROM bookings b
+                 JOIN customers c ON c.id = b.customer_id
+                 WHERE b.booking_date = ?
+                 ORDER BY b.created_at ASC`;
+
+    db.query(sql, [date], (err, rows) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ message: "Error fetching bookings" });
+        }
+        res.status(200).json(rows);
+    });
+});
+
+// ADMIN: Approve a booking (also adds it to the customer's bill)
+app.post('/admin/bookings/:id/approve', (req, res) => {
+    const bookingId = req.params.id;
+
+    db.query("SELECT * FROM bookings WHERE id = ?", [bookingId], (err, rows) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ message: "Server error" });
+        }
+
+        if (rows.length === 0) {
+            return res.status(404).json({ message: "Booking not found" });
+        }
+
+        const booking = rows[0];
+
+        if (booking.status === 'approved') {
+            return res.status(400).json({ message: "Already approved" });
+        }
+
+        db.query("UPDATE bookings SET status = 'approved' WHERE id = ?", [bookingId], (err) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ message: "Error approving booking" });
+            }
+
+            // Billing mein bhi add kar do (existing tiffin table use karke)
+            const tiffinSql = `INSERT INTO tiffin (customer_id, date, type, quantity, extra_roti, extra_bhakari)
+                               VALUES (?, ?, ?, 1, 0, 0)`;
+
+            db.query(tiffinSql, [booking.customer_id, booking.booking_date, booking.meal_type], (err) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({ message: "Booking approved, but billing failed" });
+                }
+                return res.status(200).json({ message: "Booking approved and added to bill ✅" });
+            });
+        });
+    });
+});
+
+// ADMIN: Reject a booking
+app.post('/admin/bookings/:id/reject', (req, res) => {
+    db.query("UPDATE bookings SET status = 'rejected' WHERE id = ?", [req.params.id], (err, result) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ message: "Error rejecting booking" });
+        }
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ message: "Booking not found" });
+        }
+
+        return res.status(200).json({ message: "Booking rejected" });
+    });
+});
+
+// ============================================================
+// WEEKLY MENU MANAGEMENT (Admin)
+// ============================================================
+
+// GET full weekly menu (all days, Lunch + Dinner)
+app.get('/admin/menu', (req, res) => {
+    db.query("SELECT day_of_week, meal_type, menu_text, meal_time FROM daily_menus", (err, rows) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ message: "Error fetching menu" });
+        }
+        res.status(200).json(rows);
+    });
+});
+
+// UPDATE (or create) a single day+meal's menu and timing
+app.put('/admin/menu', (req, res) => {
+    const { day_of_week, meal_type, menu_text, meal_time } = req.body;
+
+    if (!day_of_week || !meal_type) {
+        return res.status(400).json({ message: "Day and meal type are required" });
+    }
+
+    const sql = `INSERT INTO daily_menus (day_of_week, meal_type, menu_text, meal_time)
+                 VALUES (?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE menu_text = VALUES(menu_text), meal_time = VALUES(meal_time)`;
+
+    db.query(sql, [day_of_week, meal_type, menu_text || '', meal_time || null], (err) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ message: "Error saving menu" });
+        }
+        return res.status(200).json({ message: "Menu updated ✅" });
     });
 });
 

@@ -447,3 +447,107 @@ input::placeholder { color: #64748b; }
 .auth-page {
     background: linear-gradient(160deg, #0f172a 0%, #1e293b 100%);
 }
+
+/* ── Today's Meals (Customer) ── */
+.meals-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 1rem;
+    margin-top: 0.5rem;
+}
+
+.meal-card {
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+}
+
+.meal-card-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+}
+
+.meal-card-head h3 {
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.meal-time {
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    background: var(--surface);
+    border: 1px solid var(--border);
+    padding: 0.2rem 0.6rem;
+    border-radius: 999px;
+    white-space: nowrap;
+}
+
+.meal-menu {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+    flex-grow: 1;
+}
+
+.meal-status {
+    text-align: center;
+    padding: 0.55rem;
+    border-radius: var(--radius-sm);
+    font-size: 0.8125rem;
+    font-weight: 600;
+}
+
+.meal-status.pending  { background: rgba(251, 191, 36, 0.15); color: var(--warning); }
+.meal-status.approved { background: var(--success-light); color: var(--success); }
+.meal-status.rejected { background: var(--danger-light); color: var(--danger); }
+
+/* ── Weekly Menu Manager (Admin) ── */
+.menu-day-block {
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 1rem;
+    margin-top: 1rem;
+}
+
+.menu-day-block:first-child { margin-top: 0; }
+
+.menu-day-block h3 {
+    font-size: 0.9375rem;
+    font-weight: 700;
+    margin-bottom: 0.875rem;
+    color: var(--primary);
+}
+
+.menu-meal-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr auto;
+    gap: 0.75rem;
+    align-items: end;
+    margin-bottom: 0.875rem;
+}
+
+.menu-meal-row:last-child { margin-bottom: 0; }
+.menu-meal-row .form-group { margin-bottom: 0; }
+
+.menu-meal-row textarea {
+    width: 100%;
+    padding: 0.625rem 0.875rem;
+    font-family: inherit;
+    font-size: 0.875rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    background: var(--surface);
+    color: var(--text);
+    resize: vertical;
+}
+
+@media (max-width: 640px) {
+    .menu-meal-row { grid-template-columns: 1fr; }
+}

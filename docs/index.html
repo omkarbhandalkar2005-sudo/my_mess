@@ -33,6 +33,22 @@
 
     <div class="grid">
 
+        <!-- Today's Meals (Customer) -->
+        <section class="card grid-full customer-only" id="todaysMealsSection">
+            <div class="card-header">
+                <div class="card-icon amber">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M3 2v7c0 1.1.9 2 2 2h1a2 2 0 0 0 2-2V2M7 2v20M17 2v20M17 2a5 5 0 0 1 0 10"/>
+                    </svg>
+                </div>
+                <h2>Today's Meals</h2>
+            </div>
+            <p class="subsection-title" id="todayDateLabel" style="margin-top:-0.75rem;">&nbsp;</p>
+            <div class="meals-grid" id="todaysMealsList">
+                <p class="empty">Loading...</p>
+            </div>
+        </section>
+
         <!-- Customer profile -->
         <section class="card customer-only" id="customerIdSection">
             <div class="card-header">
@@ -200,6 +216,33 @@
             <div id="allCustomersList"></div>
         </section>
 
+        <!-- Today's Booking Requests (Admin) -->
+        <section class="card grid-full admin-only" id="bookingsSection">
+            <div class="card-header">
+                <div class="card-icon amber">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M3 2v7c0 1.1.9 2 2 2h1a2 2 0 0 0 2-2V2M7 2v20M17 2v20M17 2a5 5 0 0 1 0 10"/>
+                    </svg>
+                </div>
+                <h2>Today's Booking Requests</h2>
+            </div>
+            <div id="bookingsList"></div>
+        </section>
+
+        <!-- Manage Weekly Menu (Admin) -->
+        <section class="card grid-full admin-only" id="menuManageSection">
+            <div class="card-header">
+                <div class="card-icon blue">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+                        <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+                    </svg>
+                </div>
+                <h2>Manage Weekly Menu</h2>
+            </div>
+            <div id="menuManageList"></div>
+        </section>
+
         <!-- History -->
         <section class="card grid-full">
             <div class="card-header">
@@ -315,6 +358,8 @@
             document.getElementById("pageSubtitle").innerText =
                 "Manage tiffins, payments, and billing for all customers";
             loadAllCustomers();
+            loadBookings();
+            loadMenuManager();
         } else {
             document.getElementById("display_customer_id").innerText =
                 localStorage.getItem("customer_id") || "—";
@@ -329,6 +374,7 @@
             document.getElementById("payNowSection").style.display = "block";
             getBill();
             loadHistory();
+            loadTodaysMeals();
         }
     }
 
@@ -494,6 +540,206 @@
             console.error(err);
             document.getElementById("tiffin_history").innerHTML =
                 '<p class="empty">Failed to load history.</p>';
+        });
+    }
+    function formatTime12(t) {
+        if (!t) return "";
+        const [h, m] = t.split(":").map(Number);
+        const period  = h >= 12 ? "PM" : "AM";
+        const hour12  = (h % 12) || 12;
+        return `${String(hour12).padStart(2, '0')}:${String(m).padStart(2, '0')} ${period}`;
+    }
+
+    // ── Today's Meals (Customer) ──
+    function loadTodaysMeals() {
+        const id        = localStorage.getItem("customer_id");
+        const container = document.getElementById("todaysMealsList");
+        container.innerHTML = '<p class="empty">Loading...</p>';
+
+        fetch(`${API}/menu/today/${id}`)
+        .then(res => res.json())
+        .then(data => {
+            document.getElementById("todayDateLabel").innerText = `${data.day}, ${formatDate(data.date)}`;
+
+            const meals = [
+                { key: "lunch",  label: "Lunch" },
+                { key: "dinner", label: "Dinner" }
+            ];
+
+            container.innerHTML = meals.map(m => {
+                const info    = data[m.key] || {};
+                const hasMenu = !!info.menu_text;
+                let actionHtml;
+
+                if (!hasMenu) {
+                    actionHtml = `<p class="empty" style="padding:0.5rem 0;">Menu not announced yet</p>`;
+                } else if (info.status === "approved") {
+                    actionHtml = `<div class="meal-status approved">✅ Booked</div>`;
+                } else if (info.status === "pending") {
+                    actionHtml = `<div class="meal-status pending">⏳ Waiting for approval</div>`;
+                } else if (info.status === "rejected") {
+                    actionHtml = `
+                        <div class="meal-status rejected">❌ Request rejected</div>
+                        <button class="btn btn-primary" onclick="bookMeal('${m.label}')">Request Again</button>`;
+                } else {
+                    actionHtml = `<button class="btn btn-primary" onclick="bookMeal('${m.label}')">Book Tiffin</button>`;
+                }
+
+                return `<div class="meal-card">
+                    <div class="meal-card-head">
+                        <h3>${m.label}</h3>
+                        ${info.meal_time ? `<span class="meal-time">${formatTime12(info.meal_time)}</span>` : ""}
+                    </div>
+                    <p class="meal-menu">${info.menu_text || "—"}</p>
+                    ${actionHtml}
+                </div>`;
+            }).join("");
+        })
+        .catch(err => {
+            console.error(err);
+            container.innerHTML = '<p class="empty">Failed to load today\'s meals.</p>';
+        });
+    }
+
+    function bookMeal(mealType) {
+        const id = localStorage.getItem("customer_id");
+
+        fetch(`${API}/bookings`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ customer_id: id, meal_type: mealType })
+        })
+        .then(res => res.json())
+        .then(data => {
+            loadTodaysMeals();
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Booking failed. Please try again.");
+        });
+    }
+
+    // ── Booking Requests (Admin) ──
+    function loadBookings() {
+        const container = document.getElementById("bookingsList");
+        container.innerHTML = '<p class="empty">Loading...</p>';
+
+        fetch(`${API}/admin/bookings/today`)
+        .then(res => res.json())
+        .then(data => {
+            if (!data.length) {
+                container.innerHTML = '<p class="empty">No booking requests today.</p>';
+                return;
+            }
+
+            const rows = data.map(b => {
+                let actionHtml = "—";
+                if (b.status === "pending") {
+                    actionHtml = `
+                        <button class="btn btn-ghost btn-sm" style="color:#16a34a;" onclick="respondBooking(${b.id}, 'approve')">Approve</button>
+                        <button class="btn btn-ghost btn-sm" style="color:#dc2626;" onclick="respondBooking(${b.id}, 'reject')">Reject</button>`;
+                }
+                const statusColor = b.status === 'approved' ? '#16a34a' : b.status === 'rejected' ? '#dc2626' : '#d97706';
+
+                return `<tr>
+                    <td>${b.name} (#${b.customer_id})</td>
+                    <td>${b.meal_type}</td>
+                    <td style="color:${statusColor}; text-transform:capitalize;">${b.status}</td>
+                    <td>${actionHtml}</td>
+                </tr>`;
+            }).join("");
+
+            container.innerHTML = `<div class="table-wrap"><table>
+                <thead><tr><th>Customer</th><th>Meal</th><th>Status</th><th>Action</th></tr></thead>
+                <tbody>${rows}</tbody>
+            </table></div>`;
+        })
+        .catch(err => {
+            console.error(err);
+            container.innerHTML = '<p class="empty">Failed to load bookings.</p>';
+        });
+    }
+
+    function respondBooking(id, action) {
+        fetch(`${API}/admin/bookings/${id}/${action}`, { method: "POST" })
+        .then(res => res.json())
+        .then(data => {
+            loadBookings();
+            loadAllCustomers();
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Action failed. Please try again.");
+        });
+    }
+
+    // ── Weekly Menu Manager (Admin) ──
+    const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+    function loadMenuManager() {
+        const container = document.getElementById("menuManageList");
+        container.innerHTML = '<p class="empty">Loading...</p>';
+
+        fetch(`${API}/admin/menu`)
+        .then(res => res.json())
+        .then(data => {
+            const map = {};
+            data.forEach(row => { map[`${row.day_of_week}_${row.meal_type}`] = row; });
+
+            container.innerHTML = DAYS.map(day => {
+                const lunch  = map[`${day}_Lunch`]  || {};
+                const dinner = map[`${day}_Dinner`] || {};
+
+                return `
+                <div class="menu-day-block">
+                    <h3>${day}</h3>
+                    <div class="menu-meal-row">
+                        <div class="form-group">
+                            <label>Lunch menu</label>
+                            <textarea id="menu_${day}_Lunch_text" rows="2">${lunch.menu_text || ""}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Lunch time</label>
+                            <input type="time" id="menu_${day}_Lunch_time" value="${lunch.meal_time || ""}">
+                        </div>
+                        <button class="btn btn-ghost btn-sm" onclick="saveMenu('${day}','Lunch')">Save</button>
+                    </div>
+                    <div class="menu-meal-row">
+                        <div class="form-group">
+                            <label>Dinner menu</label>
+                            <textarea id="menu_${day}_Dinner_text" rows="2">${dinner.menu_text || ""}</textarea>
+                        </div>
+                        <div class="form-group">
+                            <label>Dinner time</label>
+                            <input type="time" id="menu_${day}_Dinner_time" value="${dinner.meal_time || ""}">
+                        </div>
+                        <button class="btn btn-ghost btn-sm" onclick="saveMenu('${day}','Dinner')">Save</button>
+                    </div>
+                </div>`;
+            }).join("");
+        })
+        .catch(err => {
+            console.error(err);
+            container.innerHTML = '<p class="empty">Failed to load menu.</p>';
+        });
+    }
+
+    function saveMenu(day, mealType) {
+        const menu_text = document.getElementById(`menu_${day}_${mealType}_text`).value;
+        const meal_time = document.getElementById(`menu_${day}_${mealType}_time`).value;
+
+        fetch(`${API}/admin/menu`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ day_of_week: day, meal_type: mealType, menu_text, meal_time })
+        })
+        .then(res => res.json())
+        .then(data => {
+            alert(data.message || "Saved ✅");
+        })
+        .catch(err => {
+            console.error(err);
+            alert("Failed to save menu.");
         });
     }
 </script>
