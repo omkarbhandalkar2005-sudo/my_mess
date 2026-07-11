@@ -229,7 +229,7 @@
             <div id="bookingsList"></div>
         </section>
 
-        <!-- Manage Weekly Menu (Admin) -->
+        <!-- Today's Menu (Admin) -->
         <section class="card grid-full admin-only" id="menuManageSection">
             <div class="card-header">
                 <div class="card-icon blue">
@@ -238,9 +238,48 @@
                         <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
                     </svg>
                 </div>
-                <h2>Manage Weekly Menu</h2>
+                <h2>Today's Menu</h2>
             </div>
-            <div id="menuManageList"></div>
+
+            <div class="form-group">
+                <label for="menuDaySelector" class="menu-selector-label">Select Day</label>
+                <select id="menuDaySelector" class="menu-day-selector" onchange="renderMenuDay(this.value)">
+                    <option>Monday</option>
+                    <option>Tuesday</option>
+                    <option>Wednesday</option>
+                    <option>Thursday</option>
+                    <option>Friday</option>
+                    <option>Saturday</option>
+                    <option>Sunday</option>
+                </select>
+            </div>
+
+            <div class="menu-simple-block">
+                <h3>☀️ Lunch</h3>
+                <div class="form-group">
+                    <label for="simple_lunch_text">What's on the menu?</label>
+                    <textarea id="simple_lunch_text" rows="3" placeholder="e.g. Roti, Rice, Dal, Sabzi, Salad"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="simple_lunch_time">Serving Time</label>
+                    <input type="time" id="simple_lunch_time">
+                </div>
+            </div>
+
+            <div class="menu-simple-block">
+                <h3>🌙 Dinner</h3>
+                <div class="form-group">
+                    <label for="simple_dinner_text">What's on the menu?</label>
+                    <textarea id="simple_dinner_text" rows="3" placeholder="e.g. Roti, Rice, Chhole, Salad"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="simple_dinner_time">Serving Time</label>
+                    <input type="time" id="simple_dinner_time">
+                </div>
+            </div>
+
+            <button class="btn btn-primary btn-lg" id="saveMenuBtn" onclick="saveMenuDay()">💾 Save Changes</button>
+            <div id="menu_save_result"></div>
         </section>
 
         <!-- History -->
@@ -673,73 +712,70 @@
         });
     }
 
-    // ── Weekly Menu Manager (Admin) ──
-    const DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+    // ── Today's Menu Manager (Admin) — simple single-day view ──
+    let menuDataCache = {};
 
     function loadMenuManager() {
-        const container = document.getElementById("menuManageList");
-        container.innerHTML = '<p class="empty">Loading...</p>';
-
         fetch(`${API}/admin/menu`)
         .then(res => res.json())
         .then(data => {
-            const map = {};
-            data.forEach(row => { map[`${row.day_of_week}_${row.meal_type}`] = row; });
+            menuDataCache = {};
+            data.forEach(row => { menuDataCache[`${row.day_of_week}_${row.meal_type}`] = row; });
 
-            container.innerHTML = DAYS.map(day => {
-                const lunch  = map[`${day}_Lunch`]  || {};
-                const dinner = map[`${day}_Dinner`] || {};
-
-                return `
-                <div class="menu-day-block">
-                    <h3>${day}</h3>
-                    <div class="menu-meal-row">
-                        <div class="form-group">
-                            <label>Lunch menu</label>
-                            <textarea id="menu_${day}_Lunch_text" rows="2">${lunch.menu_text || ""}</textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Lunch time</label>
-                            <input type="time" id="menu_${day}_Lunch_time" value="${lunch.meal_time || ""}">
-                        </div>
-                        <button class="btn btn-ghost btn-sm" onclick="saveMenu('${day}','Lunch')">Save</button>
-                    </div>
-                    <div class="menu-meal-row">
-                        <div class="form-group">
-                            <label>Dinner menu</label>
-                            <textarea id="menu_${day}_Dinner_text" rows="2">${dinner.menu_text || ""}</textarea>
-                        </div>
-                        <div class="form-group">
-                            <label>Dinner time</label>
-                            <input type="time" id="menu_${day}_Dinner_time" value="${dinner.meal_time || ""}">
-                        </div>
-                        <button class="btn btn-ghost btn-sm" onclick="saveMenu('${day}','Dinner')">Save</button>
-                    </div>
-                </div>`;
-            }).join("");
+            const todayName = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+            document.getElementById("menuDaySelector").value = todayName;
+            renderMenuDay(todayName);
         })
         .catch(err => {
             console.error(err);
-            container.innerHTML = '<p class="empty">Failed to load menu.</p>';
         });
     }
 
-    function saveMenu(day, mealType) {
-        const menu_text = document.getElementById(`menu_${day}_${mealType}_text`).value;
-        const meal_time = document.getElementById(`menu_${day}_${mealType}_time`).value;
+    function renderMenuDay(day) {
+        const lunch  = menuDataCache[`${day}_Lunch`]  || {};
+        const dinner = menuDataCache[`${day}_Dinner`] || {};
 
-        fetch(`${API}/admin/menu`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ day_of_week: day, meal_type: mealType, menu_text, meal_time })
-        })
-        .then(res => res.json())
-        .then(data => {
-            alert(data.message || "Saved ✅");
+        document.getElementById("simple_lunch_text").value  = lunch.menu_text  || "";
+        document.getElementById("simple_lunch_time").value  = lunch.meal_time  || "";
+        document.getElementById("simple_dinner_text").value = dinner.menu_text || "";
+        document.getElementById("simple_dinner_time").value = dinner.meal_time || "";
+
+        document.getElementById("menu_save_result").innerHTML = "";
+    }
+
+    function saveMenuDay() {
+        const day = document.getElementById("menuDaySelector").value;
+        const btn = document.getElementById("saveMenuBtn");
+        btn.disabled = true;
+
+        const lunchPayload = {
+            day_of_week: day,
+            meal_type: "Lunch",
+            menu_text: document.getElementById("simple_lunch_text").value,
+            meal_time: document.getElementById("simple_lunch_time").value
+        };
+        const dinnerPayload = {
+            day_of_week: day,
+            meal_type: "Dinner",
+            menu_text: document.getElementById("simple_dinner_text").value,
+            meal_time: document.getElementById("simple_dinner_time").value
+        };
+
+        Promise.all([
+            fetch(`${API}/admin/menu`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(lunchPayload) }),
+            fetch(`${API}/admin/menu`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(dinnerPayload) })
+        ])
+        .then(() => {
+            menuDataCache[`${day}_Lunch`]  = { menu_text: lunchPayload.menu_text,  meal_time: lunchPayload.meal_time };
+            menuDataCache[`${day}_Dinner`] = { menu_text: dinnerPayload.menu_text, meal_time: dinnerPayload.meal_time };
+            showAlert("menu_save_result", `${day}'s menu saved ✅`, "success");
         })
         .catch(err => {
             console.error(err);
-            alert("Failed to save menu.");
+            showAlert("menu_save_result", "Failed to save menu. Please try again.", "error");
+        })
+        .finally(() => {
+            btn.disabled = false;
         });
     }
 </script>

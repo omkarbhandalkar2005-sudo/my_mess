@@ -508,39 +508,45 @@ input::placeholder { color: #64748b; }
 .meal-status.approved { background: var(--success-light); color: var(--success); }
 .meal-status.rejected { background: var(--danger-light); color: var(--danger); }
 
-/* ── Weekly Menu Manager (Admin) ── */
-.menu-day-block {
+/* ── Today's Menu Manager (Admin, simple mode) ── */
+.menu-selector-label {
+    font-size: 0.9375rem !important;
+}
+
+.menu-day-selector {
+    font-size: 1.125rem;
+    font-weight: 600;
+    padding: 0.875rem 1rem;
+    border-width: 2px;
+    cursor: pointer;
+}
+
+.menu-simple-block {
+    background: var(--bg);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    padding: 1rem;
-    margin-top: 1rem;
+    padding: 1.25rem;
+    margin-top: 1.25rem;
 }
 
-.menu-day-block:first-child { margin-top: 0; }
-
-.menu-day-block h3 {
-    font-size: 0.9375rem;
+.menu-simple-block h3 {
+    font-size: 1.0625rem;
     font-weight: 700;
-    margin-bottom: 0.875rem;
-    color: var(--primary);
+    margin-bottom: 1rem;
 }
 
-.menu-meal-row {
-    display: grid;
-    grid-template-columns: 2fr 1fr auto;
-    gap: 0.75rem;
-    align-items: end;
-    margin-bottom: 0.875rem;
+.menu-simple-block .form-group:last-child { margin-bottom: 0; }
+
+.menu-simple-block label {
+    font-size: 0.9375rem !important;
+    font-weight: 600 !important;
 }
 
-.menu-meal-row:last-child { margin-bottom: 0; }
-.menu-meal-row .form-group { margin-bottom: 0; }
-
-.menu-meal-row textarea {
+.menu-simple-block textarea {
     width: 100%;
-    padding: 0.625rem 0.875rem;
+    padding: 0.875rem 1rem;
     font-family: inherit;
-    font-size: 0.875rem;
+    font-size: 1rem;
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     background: var(--surface);
@@ -548,6 +554,13 @@ input::placeholder { color: #64748b; }
     resize: vertical;
 }
 
-@media (max-width: 640px) {
-    .menu-meal-row { grid-template-columns: 1fr; }
+.menu-simple-block input[type="time"] {
+    font-size: 1.0625rem;
+    padding: 0.75rem 1rem;
+}
+
+.btn-lg {
+    padding: 1rem 1.5rem;
+    font-size: 1.0625rem;
+    margin-top: 1.5rem;
 }
