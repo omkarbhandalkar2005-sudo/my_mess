@@ -496,7 +496,7 @@
         const headers = columns.map(c => `<th>${c.label}</th>`).join("") + (deleteFn ? "<th></th>" : "");
         const body = rows.map(row =>
             `<tr>${columns.map(c => `<td>${c.key === 'date' ? formatDate(row[c.key]) : (row[c.key] ?? "—")}</td>`).join("")}${
-                deleteFn ? `<td><button class="btn btn-ghost btn-sm" onclick="${deleteFn}(${row.id})" style="color:#dc2626;">Delete</button></td>` : ""
+                deleteFn ? `<td><button class="btn btn-danger btn-sm" onclick="${deleteFn}(${row.id})">Delete</button></td>` : ""
             }</tr>`
         ).join("");
         return `<div class="table-wrap"><table><thead><tr>${headers}</tr></thead><tbody>${body}</tbody></table></div>`;
@@ -678,8 +678,8 @@
                 let actionHtml = "—";
                 if (b.status === "pending") {
                     actionHtml = `
-                        <button class="btn btn-ghost btn-sm" style="color:#16a34a;" onclick="respondBooking(${b.id}, 'approve')">Approve</button>
-                        <button class="btn btn-ghost btn-sm" style="color:#dc2626;" onclick="respondBooking(${b.id}, 'reject')">Reject</button>`;
+                        <button class="btn btn-success btn-sm" onclick="respondBooking(${b.id}, 'approve')">Approve</button>
+                        <button class="btn btn-danger btn-sm" onclick="respondBooking(${b.id}, 'reject')">Reject</button>`;
                 }
                 const statusColor = b.status === 'approved' ? '#16a34a' : b.status === 'rejected' ? '#dc2626' : '#d97706';
 

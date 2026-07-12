@@ -163,6 +163,18 @@ html.role-admin .customer-only { display: none !important; }
 }
 .btn-ghost:hover { background: var(--bg); color: var(--text); }
 
+.btn-success {
+    background: var(--success-light);
+    color: var(--success);
+}
+.btn-success:hover:not(:disabled) { background: rgba(34, 197, 143, 0.22); }
+
+.btn-danger {
+    background: var(--danger-light);
+    color: var(--danger);
+}
+.btn-danger:hover:not(:disabled) { background: rgba(242, 85, 95, 0.22); }
+
 .btn-sm { padding: 0.375rem 0.875rem; font-size: 0.8125rem; }
 
 .btn-lg {
