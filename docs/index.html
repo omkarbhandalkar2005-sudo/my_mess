@@ -34,6 +34,19 @@
 
     <div class="grid">
 
+        <!-- Today's Booking Requests (Admin) -->
+        <section class="card grid-full admin-only" id="bookingsSection" aria-labelledby="bookingsHeading">
+            <div class="card-header">
+                <div class="card-icon amber" aria-hidden="true">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M3 2v7c0 1.1.9 2 2 2h1a2 2 0 0 0 2-2V2M7 2v20M17 2v20M17 2a5 5 0 0 1 0 10"/>
+                    </svg>
+                </div>
+                <h2 id="bookingsHeading">Today's Booking Requests</h2>
+            </div>
+            <div id="bookingsList" aria-live="polite"></div>
+        </section>
+
         <!-- Today's Meals (Customer) -->
         <section class="card grid-full customer-only" id="todaysMealsSection" aria-labelledby="todaysMealsHeading">
             <div class="card-header">
@@ -217,19 +230,6 @@
                 <h2 id="allCustomersHeading">All Customers</h2>
             </div>
             <div id="allCustomersList" aria-live="polite"></div>
-        </section>
-
-        <!-- Today's Booking Requests (Admin) -->
-        <section class="card grid-full admin-only" id="bookingsSection" aria-labelledby="bookingsHeading">
-            <div class="card-header">
-                <div class="card-icon amber" aria-hidden="true">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M3 2v7c0 1.1.9 2 2 2h1a2 2 0 0 0 2-2V2M7 2v20M17 2v20M17 2a5 5 0 0 1 0 10"/>
-                    </svg>
-                </div>
-                <h2 id="bookingsHeading">Today's Booking Requests</h2>
-            </div>
-            <div id="bookingsList" aria-live="polite"></div>
         </section>
 
         <!-- Today's Menu (Admin) -->
