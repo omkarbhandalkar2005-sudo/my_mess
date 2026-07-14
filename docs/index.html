@@ -454,7 +454,25 @@
 
     initDashboard();
 
+    function toggleProfileMenu() {
+        const dropdown = document.getElementById("profileDropdown");
+        const btn = document.getElementById("profileAvatarBtn");
+        if (!dropdown) return;
+        const isOpen = dropdown.classList.toggle("open");
+        if (btn) btn.setAttribute("aria-expanded", isOpen ? "true" : "false");
+    }
+
+    document.addEventListener("click", function (e) {
+        const menu = document.getElementById("profileMenu");
+        const dropdown = document.getElementById("profileDropdown");
+        if (menu && dropdown && !menu.contains(e.target)) {
+            dropdown.classList.remove("open");
+        }
+    });
+
     function goToAccount() {
+        const dropdown = document.getElementById("profileDropdown");
+        if (dropdown) dropdown.classList.remove("open");
         const modal = document.getElementById("accountModal");
         if (modal) modal.classList.add("open");
     }
