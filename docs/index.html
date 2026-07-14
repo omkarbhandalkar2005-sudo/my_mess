@@ -74,7 +74,7 @@
         </section>
 
         <!-- Customer profile (modal) -->
-        <div class="modal-overlay customer-only" id="accountModal" onclick="if(event.target===this) closeAccountModal()">
+        <div class="modal-overlay" id="accountModal" onclick="if(event.target===this) closeAccountModal()">
             <section class="card modal-box" id="customerIdSection" role="dialog" aria-modal="true" aria-labelledby="accountHeading" tabindex="-1">
                 <div class="card-header">
                     <div class="card-icon" aria-hidden="true">
@@ -85,7 +85,7 @@
                     <h2 id="accountHeading" style="flex:1;">Your Account</h2>
                     <button class="modal-close" onclick="closeAccountModal()" aria-label="Close">&times;</button>
                 </div>
-                <div class="customer-banner">
+                <div class="customer-banner customer-only">
                     <div>
                         <div class="customer-banner-label">Customer ID</div>
                         <div class="customer-banner-id" id="display_customer_id"></div>
@@ -95,7 +95,7 @@
                     </svg>
                 </div>
 
-                <div class="stats-grid">
+                <div class="stats-grid customer-only">
                     <div class="stat-card">
                         <div class="stat-label">Name</div>
                         <div class="stat-value" id="display_name" style="font-size: var(--text-base);">—</div>
