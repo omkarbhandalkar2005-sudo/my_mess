@@ -107,6 +107,54 @@ button:focus-visible,
 
 .navbar-brand svg { flex-shrink: 0; }
 
+.profile-menu { position: relative; }
+
+.profile-avatar {
+    width: 34px;
+    height: 34px;
+    border-radius: 50%;
+    background: var(--primary);
+    color: #0a0a0a;
+    border: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    padding: 0;
+}
+
+.profile-avatar:hover { background: var(--primary-hover); }
+
+.profile-dropdown {
+    display: none;
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    min-width: 170px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow-lg);
+    overflow: hidden;
+    z-index: 50;
+}
+
+.profile-dropdown.open { display: block; }
+
+.profile-dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 0.625rem 1rem;
+    background: none;
+    border: none;
+    text-align: left;
+    font-size: var(--text-sm);
+    color: var(--text);
+    cursor: pointer;
+}
+
+.profile-dropdown-item:hover { background: rgba(255, 255, 255, 0.06); }
+
 .navbar-actions { display: flex; align-items: center; gap: var(--space-3); }
 
 .role-badge {
