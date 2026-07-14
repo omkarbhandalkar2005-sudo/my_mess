@@ -78,42 +78,62 @@
             </div>
         </section>
 
-        <!-- Customer profile -->
-        <section class="card" id="customerIdSection" aria-labelledby="accountHeading">
-            <div class="card-header">
-                <div class="card-icon" aria-hidden="true">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+        <!-- Customer profile (modal) -->
+        <div class="modal-overlay" id="accountModal" onclick="if(event.target===this) closeAccountModal()">
+            <section class="card modal-box" id="customerIdSection" aria-labelledby="accountHeading">
+                <div class="card-header">
+                    <div class="card-icon" aria-hidden="true">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                            <circle cx="12" cy="7" r="4"/>
+                        </svg>
+                    </div>
+
+                    <h2 id="accountHeading" style="flex:1;">Your Account</h2>
+
+                    <button class="modal-close"
+                            onclick="closeAccountModal()"
+                            aria-label="Close">
+                        &times;
+                    </button>
+                </div>
+
+                <div class="customer-banner">
+                    <div>
+                        <div class="customer-banner-label">Customer ID</div>
+                        <div class="customer-banner-id" id="display_customer_id"></div>
+                    </div>
+
+                    <svg width="32" height="32" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
+                        <rect x="2" y="5" width="20" height="14" rx="2"/>
+                        <path d="M2 10h20"/>
                     </svg>
                 </div>
-                <h2 id="accountHeading">Your Account</h2>
-            </div>
-            <div class="customer-banner">
-                <div>
-                    <div class="customer-banner-label">Customer ID</div>
-                    <div class="customer-banner-id" id="display_customer_id"></div>
-                </div>
-                <svg width="32" height="32" fill="none" stroke="rgba(255,255,255,0.5)" stroke-width="1.5" viewBox="0 0 24 24" aria-hidden="true">
-                    <rect x="2" y="5" width="20" height="14" rx="2"/><path d="M2 10h20"/>
-                </svg>
-            </div>
 
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-label">Name</div>
-                    <div class="stat-value" id="display_name" style="font-size: var(--text-base);">—</div>
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <div class="stat-label">Name</div>
+                        <div class="stat-value" id="display_name" style="font-size:var(--text-base);">—</div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-label">Phone</div>
+                        <div class="stat-value" id="display_contact" style="font-size:var(--text-base);">—</div>
+                    </div>
+
+                    <div class="stat-card grid-full">
+                        <div class="stat-label">Email</div>
+                        <div class="stat-value" id="display_email" style="font-size:var(--text-base);">—</div>
+                    </div>
                 </div>
-                <div class="stat-card">
-                    <div class="stat-label">Phone</div>
-                    <div class="stat-value" id="display_contact" style="font-size: var(--text-base);">—</div>
-                </div>
-                <div class="stat-card grid-full">
-                    <div class="stat-label">Email</div>
-                    <div class="stat-value" id="display_email" style="font-size: var(--text-base);">—</div>
-                </div>
-            </div>
-            <button class="btn btn-ghost btn-sm" style="margin-top: 1rem;" onclick="logout()">Sign Out</button>
-        </section>
+
+                <button class="btn btn-ghost btn-sm"
+                        style="margin-top:1rem;"
+                        onclick="logout()">
+                    Sign Out
+                </button>
+            </section>
+        </div>
 
         <!-- Add Tiffin (Admin) -->
         <section class="card admin-only" id="addSection" aria-labelledby="addTiffinHeading">
@@ -435,8 +455,13 @@
     initDashboard();
 
     function goToAccount() {
-        const section = document.getElementById("customerIdSection");
-        if (section) section.scrollIntoView({ behavior: "smooth", block: "start" });
+        const modal = document.getElementById("accountModal");
+        if (modal) modal.classList.add("open");
+    }
+
+    function closeAccountModal() {
+        const modal = document.getElementById("accountModal");
+        if (modal) modal.classList.remove("open");
     }
 
     function goHome() {
