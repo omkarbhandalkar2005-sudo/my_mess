@@ -1,6 +1,6 @@
 {
-  "name": "My Mess",
-  "short_name": "My Mess",
+  "name": "my mess",
+  "short_name": "mymess",
   "icons": [
     {
       "src": "/web-app-manifest-192x192.png",

@@ -3,13 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="description" content="My Mess dashboard — manage tiffin bookings, payments, and billing.">
-    <title>Dashboard — My Mess</title>
+    <meta name="description" content="Mess Tracker dashboard — manage tiffin bookings, payments, and billing.">
+    <title>Dashboard — Mess Tracker</title>
     <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="shortcut icon" href="/favicon.ico" />
     <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
-    <meta name="apple-mobile-web-app-title" content="My Mess" />
+    <meta name="apple-mobile-web-app-title" content="my mess" />
     <link rel="manifest" href="/site.webmanifest" />
     <link rel="stylesheet" href="styles.css">
     <script>
@@ -21,8 +21,10 @@
 
 <nav class="navbar" aria-label="Main navigation">
     <div class="navbar-brand">
-        <img src="favicon-96x96.png" width="22" height="22" alt="" style="border-radius: 4px;" aria-hidden="true">
-        <span>My Mess</span>
+        <svg width="22" height="22" fill="none" stroke="var(--primary)" stroke-width="2" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"/>
+        </svg>
+        <span>Mess Tracker</span>
     </div>
     <div class="navbar-actions">
         <span class="role-badge" id="roleBadge"></span>
@@ -214,7 +216,7 @@
                 </button>
 
                 <div id="qrSection" style="display: none; margin-top: 1rem; text-align: center;">
-                    <img src="PhonPay_QR.png" alt="UPI QR code for My Mess payment" style="width: 200px; height: 200px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
+                    <img src="PhonPay_QR.png" alt="UPI QR code for Mess Tracker payment" style="width: 200px; height: 200px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
                     <p style="margin-top: 8px; font-size: var(--text-sm); color: var(--text-muted);">UPI ID: <strong>9021081442@axl</strong></p>
                     <p style="font-size: var(--text-xs); color: var(--text-muted);">You can scan QR code using any UPI app</p>
                     <p style="font-size: var(--text-xs); color: var(--warning); margin-top: 4px;">⚠️ Admin will record after payment</p>
