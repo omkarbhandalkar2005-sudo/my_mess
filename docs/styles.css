@@ -425,6 +425,67 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
 
 .subsection-title:first-of-type { margin-top: 0; }
 
+/* ── Activity History: toolbar row + segmented tabs ── */
+.history-toolbar {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    margin-bottom: var(--space-4);
+}
+
+.history-toolbar input {
+    flex: 1 1 auto;
+    min-width: 0;
+}
+
+.history-toolbar .btn {
+    flex: 0 0 auto;
+    width: auto;
+    white-space: nowrap;
+}
+
+.history-tabs {
+    display: inline-flex;
+    max-width: 100%;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: 3px;
+    gap: 2px;
+    margin-bottom: var(--space-4);
+}
+
+.history-tab {
+    appearance: none;
+    font-family: inherit;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    border-radius: calc(var(--radius-sm) - 2px);
+    padding: 0.5rem 1rem;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.history-tab:hover { color: var(--text); }
+
+.history-tab.active {
+    background: var(--primary-strong);
+    color: #ffffff;
+}
+
+.history-panel .table-wrap { margin-top: 0; }
+
+@media (max-width: 480px) {
+    .history-toolbar { flex-wrap: wrap; }
+    .history-toolbar input { flex: 1 1 100%; }
+    .history-toolbar .btn { flex: 1 1 100%; }
+    .history-tabs { width: 100%; }
+    .history-tab { flex: 1 1 0; text-align: center; }
+}
+
 /* ── Auth pages ── */
 .auth-page {
     min-height: 100vh;

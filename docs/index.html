@@ -315,18 +315,23 @@
                 <h2 id="historyHeading">Activity History</h2>
             </div>
 
-            <div class="form-group admin-only" id="historyLookupGroup">
-                <label for="history_customer_id">Customer ID</label>
-                <input type="number" id="history_customer_id" placeholder="Enter customer ID">
+            <div class="history-toolbar admin-only" id="historyLookupGroup">
+                <input type="number" id="history_customer_id" placeholder="Enter customer ID" aria-label="Customer ID">
+                <button class="btn btn-primary" onclick="loadHistory()">Load History</button>
             </div>
 
-            <button class="btn btn-primary admin-only" style="max-width:200px" onclick="loadHistory()">Load History</button>
+            <div class="history-tabs" role="tablist" aria-label="Activity History records">
+                <button type="button" class="history-tab active" id="tiffinTabBtn" role="tab" aria-selected="true" aria-controls="tiffin_history_panel" onclick="switchHistoryTab('tiffin')">Tiffin Records</button>
+                <button type="button" class="history-tab" id="paymentTabBtn" role="tab" aria-selected="false" aria-controls="payment_history_panel" onclick="switchHistoryTab('payment')">Payment Records</button>
+            </div>
 
-            <p class="subsection-title">Tiffin records</p>
-            <div id="tiffin_history" aria-live="polite"></div>
+            <div id="tiffin_history_panel" class="history-panel" role="tabpanel" aria-labelledby="tiffinTabBtn">
+                <div id="tiffin_history" aria-live="polite"></div>
+            </div>
 
-            <p class="subsection-title">Payment records</p>
-            <div id="payment_history" aria-live="polite"></div>
+            <div id="payment_history_panel" class="history-panel" role="tabpanel" aria-labelledby="paymentTabBtn" hidden>
+                <div id="payment_history" aria-live="polite"></div>
+            </div>
         </section>
 
     </div>
@@ -667,6 +672,19 @@
                 '<p class="empty">Failed to load history.</p>';
         });
     }
+    // ── Activity History: tab display only (no data/logic changes) ──
+    function switchHistoryTab(tab) {
+        const showTiffin = tab === "tiffin";
+
+        document.getElementById("tiffin_history_panel").hidden = !showTiffin;
+        document.getElementById("payment_history_panel").hidden = showTiffin;
+
+        document.getElementById("tiffinTabBtn").classList.toggle("active", showTiffin);
+        document.getElementById("paymentTabBtn").classList.toggle("active", !showTiffin);
+        document.getElementById("tiffinTabBtn").setAttribute("aria-selected", showTiffin);
+        document.getElementById("paymentTabBtn").setAttribute("aria-selected", !showTiffin);
+    }
+
     function formatTime12(t) {
         if (!t) return "";
         const [h, m] = t.split(":").map(Number);
