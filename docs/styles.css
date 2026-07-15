@@ -545,30 +545,79 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
 .meal-status.rejected { background: var(--danger-light); color: var(--danger); }
 
 /* ── Today's Menu Manager (Admin, simple mode) ── */
+
+/* Header row: icon + title on the left, compact day selector on the right */
+.menu-manage-header {
+    justify-content: space-between;
+    flex-wrap: wrap;
+    row-gap: var(--space-2);
+}
+
+.menu-manage-title {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.menu-manage-day {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+}
+
+.menu-manage-day .menu-selector-label {
+    margin-bottom: 0;
+    white-space: nowrap;
+}
+
 .menu-selector-label {
     font-size: var(--text-sm) !important;
 }
 
 .menu-day-selector {
-    font-size: var(--text-lg);
+    width: auto;
+    font-size: var(--text-sm);
     font-weight: 600;
-    padding: 0.875rem 1rem;
-    border-width: 2px;
+    padding: 0.5rem 0.75rem;
+    border-width: 1px;
     cursor: pointer;
 }
 
-.menu-simple-block {
+/* Segmented Lunch / Dinner toggle */
+.menu-meal-toggle {
+    display: flex;
+    gap: 0.25rem;
     background: var(--bg);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
-    padding: 1.25rem;
-    margin-top: 1.25rem;
+    padding: 0.25rem;
+    margin-bottom: var(--space-4);
 }
 
-.menu-simple-block h3 {
-    font-size: 1.0625rem;
-    font-weight: 700;
-    margin-bottom: var(--space-4);
+.menu-meal-tab {
+    flex: 1;
+    padding: 0.5rem;
+    font-family: inherit;
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text-muted);
+    background: transparent;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.menu-meal-tab:hover { color: var(--text); }
+
+.menu-meal-tab.active {
+    background: var(--primary-strong);
+    color: #ffffff;
+}
+
+/* Form body: readable max-width, no nested "card inside card" boxing */
+.menu-manage-body {
+    max-width: 480px;
 }
 
 .menu-simple-block .form-group:last-child { margin-bottom: 0; }
@@ -580,12 +629,18 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
 
 .menu-simple-block textarea {
     font-size: var(--text-base);
+    min-height: 88px;
     resize: vertical;
 }
 
 .menu-simple-block input[type="time"] {
-    font-size: 1.0625rem;
-    padding: 0.75rem 1rem;
+    font-size: var(--text-base);
+    padding: 0.625rem 0.875rem;
+    max-width: 200px;
+}
+
+#saveMenuBtn {
+    margin-top: var(--space-2);
 }
 
 /* ── Larger screens: restore roomier spacing ── */
