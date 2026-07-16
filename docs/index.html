@@ -779,8 +779,10 @@
                 let actionHtml = "—";
                 if (b.status === "pending") {
                     actionHtml = `
-                        <button class="btn btn-success btn-sm" onclick="respondBooking(${b.id}, 'approve')">Approve</button>
-                        <button class="btn btn-danger btn-sm" onclick="respondBooking(${b.id}, 'reject')">Reject</button>`;
+                        <div class="booking-actions">
+                            <button class="btn btn-success btn-sm btn-booking-action" onclick="respondBooking(${b.id}, 'approve')">Approve</button>
+                            <button class="btn btn-danger btn-sm btn-booking-action" onclick="respondBooking(${b.id}, 'reject')">Reject</button>
+                        </div>`;
                 }
                 const statusColor = b.status === 'approved' ? '#16a34a' : b.status === 'rejected' ? '#dc2626' : '#d97706';
 

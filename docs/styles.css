@@ -414,6 +414,30 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
     text-align: center;
 }
 
+/* ── Today's Booking Requests — compact horizontal Approve/Reject ── */
+.booking-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+}
+
+.btn-booking-action {
+    flex: 1 1 0;
+    min-width: 0;
+    height: 38px;
+    padding: 0 0.75rem;
+    border-radius: 11px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Shrink horizontal padding before the row would ever wrap */
+@media (max-width: 420px) {
+    .btn-booking-action { padding: 0 0.5rem; }
+}
+
 .subsection-title {
     font-size: 0.8125rem;
     font-weight: 600;
