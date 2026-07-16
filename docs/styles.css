@@ -858,3 +858,135 @@ body.modal-open { overflow: hidden; }
     cursor: pointer;
     padding: 0 var(--space-2);
 }
+
+/* ── Hamburger menu button (navbar) ── */
+.hamburger-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    margin-right: 0.25rem;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--text);
+    cursor: pointer;
+    flex-shrink: 0;
+}
+
+.hamburger-btn:hover { background: var(--bg); }
+
+/* ── Sidebar navigation drawer ── */
+.app-shell {
+    max-width: 1400px;
+    margin: 0 auto;
+}
+
+.app-shell > .page {
+    margin: 0;
+}
+
+/* Dims and blocks the page behind the open drawer */
+.sidebar-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 199;
+}
+
+.sidebar-overlay.open {
+    display: block;
+    animation: modalFadeIn 0.18s ease-out;
+}
+
+/* Off-canvas panel that slides in from the left */
+.sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 260px;
+    max-width: 80vw;
+    height: 100vh;
+    background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: var(--space-3);
+    overflow-y: auto;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.22s ease-out;
+}
+
+.sidebar.open {
+    transform: translateX(0);
+    box-shadow: var(--shadow-lg, 0 10px 30px rgba(0, 0, 0, 0.25));
+}
+
+body.sidebar-open { overflow: hidden; }
+
+.sidebar-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: var(--space-2) var(--space-3) var(--space-4);
+    margin-bottom: var(--space-2);
+    border-bottom: 1px solid var(--border);
+}
+
+.sidebar-header-title {
+    font-weight: 700;
+    font-size: var(--text-sm);
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--text-muted);
+}
+
+.sidebar-close-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    background: none;
+    border: none;
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    cursor: pointer;
+}
+
+.sidebar-close-btn:hover { background: var(--bg); color: var(--text); }
+
+.sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+}
+
+.sidebar-link {
+    display: flex;
+    align-items: center;
+    gap: var(--space-3);
+    padding: 0.625rem var(--space-3);
+    border-radius: var(--radius-sm);
+    color: var(--text-muted);
+    font-weight: 500;
+    font-size: var(--text-sm);
+    transition: background 0.15s, color 0.15s;
+}
+
+.sidebar-link:hover {
+    background: var(--bg);
+    color: var(--text);
+    text-decoration: none;
+}
+
+.sidebar-link svg { flex-shrink: 0; }
+
+.sidebar-link.active {
+    background: var(--primary-light);
+    color: var(--primary);
+    font-weight: 600;
+}

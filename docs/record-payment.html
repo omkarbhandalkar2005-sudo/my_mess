@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="My Mess home — manage tiffin bookings, payments, and billing.">
-    <title>Home — My Mess</title>
+    <title>Record Payment — My Mess</title>
     <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="shortcut icon" href="/favicon.ico" />
@@ -17,7 +17,7 @@
             "role-" + (localStorage.getItem("role") || "customer").toLowerCase().trim();
     </script>
 </head>
-<body data-page="home">
+<body data-page="record-payment">
 
 <nav class="navbar" aria-label="Main navigation">
     <div class="navbar-brand">
@@ -87,41 +87,41 @@
     </aside>
 <main class="page">
     <header class="page-header">
-        <h1>Home</h1>
-        <p id="pageSubtitle">Manage tiffins, payments, and billing</p>
+        <h1>Record Payment</h1>
+        <p id="pageSubtitle">Record a payment for a customer</p>
     </header>
 
     <div class="grid">
 
-        <!-- Today's Booking Requests (Admin) -->
-        <section class="card grid-full admin-only" id="bookingsSection" aria-labelledby="bookingsHeading">
+        <!-- Record Payment (Admin) -->
+        <section class="card admin-only" id="paymentSection" aria-labelledby="paymentHeading">
             <div class="card-header">
-                <div class="card-icon amber" aria-hidden="true">
+                <div class="card-icon purple" aria-hidden="true">
                     <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M3 2v7c0 1.1.9 2 2 2h1a2 2 0 0 0 2-2V2M7 2v20M17 2v20M17 2a5 5 0 0 1 0 10"/>
+                        <line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/>
                     </svg>
                 </div>
-                <h2 id="bookingsHeading">Today's Booking Requests</h2>
+                <h2 id="paymentHeading">Record Payment</h2>
             </div>
-            <div id="bookingsList" aria-live="polite"></div>
-        </section>
 
-        <!-- Today's Meals (Customer) -->
-        <section class="card grid-full customer-only" id="todaysMealsSection" aria-labelledby="todaysMealsHeading">
-            <div class="card-header">
-                <div class="card-icon amber" aria-hidden="true">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M3 2v7c0 1.1.9 2 2 2h1a2 2 0 0 0 2-2V2M7 2v20M17 2v20M17 2a5 5 0 0 1 0 10"/>
-                    </svg>
+            <div class="form-group">
+                <label for="pay_customer_id">Customer ID</label>
+                <input type="number" id="pay_customer_id" placeholder="Enter customer ID">
+            </div>
+
+            <div class="form-row">
+                <div class="form-group">
+                    <label for="amount_paid">Amount (₹)</label>
+                    <input type="number" id="amount_paid" placeholder="0" min="0">
                 </div>
-                <div>
-                    <h2 id="todaysMealsHeading">Today's Meals</h2>
-                    <p class="subsection-title" id="todayDateLabel" style="margin: 0.125rem 0 0;">&nbsp;</p>
+                <div class="form-group">
+                    <label for="pay_date">Payment date</label>
+                    <input type="date" id="pay_date">
                 </div>
             </div>
-            <div class="meals-grid" id="todaysMealsList" aria-live="polite">
-                <p class="empty">Loading...</p>
-            </div>
+
+            <button class="btn btn-primary" id="payBtn" onclick="addPayment()">Record Payment</button>
+            <div id="pay_result" aria-live="polite"></div>
         </section>
 
         <!-- Customer profile (modal) -->
@@ -164,131 +164,17 @@
             </section>
         </div>
 
-        <!-- Bill -->
-        <section class="card" aria-labelledby="billHeading">
-            <div class="card-header month-filter-header">
-                <div class="month-filter-title">
-                    <div class="card-icon amber" aria-hidden="true">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                            <polyline points="14 2 14 8 20 8"/>
-                        </svg>
-                    </div>
-                    <h2 id="billHeading">Bill Summary</h2>
-                </div>
-                <label class="month-filter-label" for="billMonthFilter">
-                    <span class="sr-only">Select month</span>
-                    <input type="month" id="billMonthFilter" class="month-filter-input" aria-label="Filter by month and year" onchange="onBillMonthChange()">
-                </label>
-            </div>
-
-            <div class="form-group admin-only" id="billLookupGroup">
-                <label for="bill_customer_id">Customer ID</label>
-                <input type="number" id="bill_customer_id" placeholder="Enter customer ID">
-            </div>
-
-            <button class="btn btn-primary admin-only" onclick="getBill()">View Bill</button>
-            <div id="bill_result" aria-live="polite"></div>
-
-            <!-- UPI Pay Button - Customer Only -->
-            <div class="customer-only" id="payNowSection" style="margin-top: 1rem; display: none;">
-                <button class="btn btn-primary" onclick="toggleQR()" id="payNowBtn">
-                    💳 Pay via UPI
-                </button>
-
-                <div id="qrSection" style="display: none; margin-top: 1rem; text-align: center;">
-                    <img src="PhonPay_QR.png" alt="UPI QR code for My Mess payment" style="width: 200px; height: 200px; border-radius: var(--radius-sm); border: 1px solid var(--border);">
-                    <p style="margin-top: 8px; font-size: var(--text-sm); color: var(--text-muted);">UPI ID: <strong>9021081442@axl</strong></p>
-                    <p style="font-size: var(--text-xs); color: var(--text-muted);">You can scan QR code using any UPI app</p>
-                    <p style="font-size: var(--text-xs); color: var(--warning); margin-top: 4px;">⚠️ Admin will record after payment</p>
-                </div>
-            </div>
-        </section>
-
-        <!-- Today's Menu (Admin) -->
-        <section class="card grid-full admin-only" id="menuManageSection" aria-labelledby="menuManageHeading">
-            <div class="card-header menu-manage-header">
-                <div class="menu-manage-title">
-                    <div class="card-icon blue" aria-hidden="true">
-                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
-                            <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                        </svg>
-                    </div>
-                    <h2 id="menuManageHeading">Today's Menu</h2>
-                </div>
-
-                <div class="menu-manage-day">
-                    <label for="menuDaySelector" class="menu-selector-label">Select Day</label>
-                    <select id="menuDaySelector" class="menu-day-selector" onchange="renderMenuDay(this.value)">
-                        <option>Monday</option>
-                        <option>Tuesday</option>
-                        <option>Wednesday</option>
-                        <option>Thursday</option>
-                        <option>Friday</option>
-                        <option>Saturday</option>
-                        <option>Sunday</option>
-                    </select>
-                </div>
-            </div>
-
-            <div class="menu-meal-toggle" role="tablist" aria-label="Meal type">
-                <button type="button" class="menu-meal-tab active" id="mealTabLunch" role="tab" aria-selected="true" onclick="setMealTab('lunch')">☀️ Lunch</button>
-                <button type="button" class="menu-meal-tab" id="mealTabDinner" role="tab" aria-selected="false" onclick="setMealTab('dinner')">🌙 Dinner</button>
-            </div>
-
-            <div class="menu-manage-body">
-                <div class="menu-simple-block" id="lunchFields">
-                    <div class="form-group">
-                        <label for="simple_lunch_text">What's on the menu?</label>
-                        <textarea id="simple_lunch_text" rows="3" placeholder="e.g. Roti, Rice, Dal, Sabzi, Salad"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="simple_lunch_time">Serving Time</label>
-                        <input type="time" id="simple_lunch_time">
-                    </div>
-                </div>
-
-                <div class="menu-simple-block" id="dinnerFields" hidden>
-                    <div class="form-group">
-                        <label for="simple_dinner_text">What's on the menu?</label>
-                        <textarea id="simple_dinner_text" rows="3" placeholder="e.g. Roti, Rice, Chhole, Salad"></textarea>
-                    </div>
-                    <div class="form-group">
-                        <label for="simple_dinner_time">Serving Time</label>
-                        <input type="time" id="simple_dinner_time">
-                    </div>
-                </div>
-
-                <button class="btn btn-primary btn-lg" id="saveMenuBtn" onclick="saveMenuDay()">💾 Save Changes</button>
-                <div id="menu_save_result" aria-live="polite"></div>
-            </div>
-        </section>
-
     </div>
 </main>
 </div>
 
 <script src="app.js"></script>
 <script>
-    function initHome() {
+    function initRecordPayment() {
         initCommon();
-
-        if (isAdmin()) {
-            document.getElementById("pageSubtitle").innerText =
-                "Manage tiffins, payments, and billing for all customers";
-            loadBookings();
-            loadMenuManager();
-        } else {
-            document.getElementById("pageSubtitle").innerText =
-                "View your bill and meal history";
-            document.getElementById("payNowSection").style.display = "block";
-            getBill();
-            loadTodaysMeals();
-        }
     }
 
-    initHome();
+    initRecordPayment();
 </script>
 
 </body>
