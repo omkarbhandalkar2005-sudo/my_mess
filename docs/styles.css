@@ -884,6 +884,7 @@ body.modal-open { overflow: hidden; }
     height: calc(100vh - 64px);
     overflow-y: auto;
 }
+
 .sidebar-nav {
     display: flex;
     flex-direction: column;
@@ -915,6 +916,7 @@ body.modal-open { overflow: hidden; }
     color: var(--primary);
     font-weight: 600;
 }
+
 @media (max-width: 900px) {
     .app-shell { flex-direction: column; }
 
