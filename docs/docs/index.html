@@ -197,14 +197,20 @@
 
         <!-- Bill -->
         <section class="card" aria-labelledby="billHeading">
-            <div class="card-header">
-                <div class="card-icon amber" aria-hidden="true">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
-                        <polyline points="14 2 14 8 20 8"/>
-                    </svg>
+            <div class="card-header month-filter-header">
+                <div class="month-filter-title">
+                    <div class="card-icon amber" aria-hidden="true">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                            <polyline points="14 2 14 8 20 8"/>
+                        </svg>
+                    </div>
+                    <h2 id="billHeading">Bill Summary</h2>
                 </div>
-                <h2 id="billHeading">Bill Summary</h2>
+                <label class="month-filter-label" for="billMonthFilter">
+                    <span class="sr-only">Select month</span>
+                    <input type="month" id="billMonthFilter" class="month-filter-input" aria-label="Filter by month and year" onchange="onBillMonthChange()">
+                </label>
             </div>
 
             <div class="form-group admin-only" id="billLookupGroup">
@@ -232,14 +238,20 @@
 
         <!-- All Customers (Admin) -->
         <section class="card grid-full admin-only" id="allCustomersSection" aria-labelledby="allCustomersHeading">
-            <div class="card-header">
-                <div class="card-icon" aria-hidden="true">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
-                        <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
-                    </svg>
+            <div class="card-header month-filter-header">
+                <div class="month-filter-title">
+                    <div class="card-icon" aria-hidden="true">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/>
+                            <path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/>
+                        </svg>
+                    </div>
+                    <h2 id="allCustomersHeading">All Customers</h2>
                 </div>
-                <h2 id="allCustomersHeading">All Customers</h2>
+                <label class="month-filter-label" for="allCustomersMonthFilter">
+                    <span class="sr-only">Select month</span>
+                    <input type="month" id="allCustomersMonthFilter" class="month-filter-input" aria-label="Filter by month and year" onchange="onAllCustomersMonthChange()">
+                </label>
             </div>
             <div id="allCustomersList" aria-live="polite"></div>
         </section>
@@ -306,13 +318,19 @@
 
         <!-- History -->
         <section class="card grid-full" aria-labelledby="historyHeading">
-            <div class="card-header">
-                <div class="card-icon blue" aria-hidden="true">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
-                    </svg>
+            <div class="card-header month-filter-header">
+                <div class="month-filter-title">
+                    <div class="card-icon blue" aria-hidden="true">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/>
+                        </svg>
+                    </div>
+                    <h2 id="historyHeading">Activity History</h2>
                 </div>
-                <h2 id="historyHeading">Activity History</h2>
+                <label class="month-filter-label" for="historyMonthFilter">
+                    <span class="sr-only">Select month</span>
+                    <input type="month" id="historyMonthFilter" class="month-filter-input" aria-label="Filter by month and year" onchange="onHistoryMonthChange()">
+                </label>
             </div>
 
             <div class="history-toolbar admin-only" id="historyLookupGroup">
@@ -352,11 +370,46 @@
         return getRole() === "admin";
     }
 
+    // ── Month-Year filter helpers (shared across sections) ──
+    function getCurrentMonthValue() {
+        const now = new Date();
+        const yyyy = now.getFullYear();
+        const mm = String(now.getMonth() + 1).padStart(2, '0');
+        return `${yyyy}-${mm}`;
+    }
+
+    function initMonthFilters() {
+        const current = getCurrentMonthValue();
+        ["allCustomersMonthFilter", "billMonthFilter", "historyMonthFilter"].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.value = current;
+        });
+    }
+
+    function monthYearQuery(inputId) {
+        const el = document.getElementById(inputId);
+        if (!el || !el.value) return "";
+        const [year, month] = el.value.split("-");
+        return `?month=${Number(month)}&year=${Number(year)}`;
+    }
+
+    function onAllCustomersMonthChange() {
+        loadAllCustomers();
+    }
+
+    function onBillMonthChange() {
+        getBill();
+    }
+
+    function onHistoryMonthChange() {
+        loadHistory();
+    }
+
     function loadAllCustomers() {
         const container = document.getElementById("allCustomersList");
         container.innerHTML = '<p class="empty">Loading...</p>';
 
-        fetch(`${API}/all-customers-summary`)
+        fetch(`${API}/all-customers-summary${monthYearQuery("allCustomersMonthFilter")}`)
         .then(res => res.json())
         .then(data => {
             if (!data.length) {
@@ -419,6 +472,8 @@
 
         const badge = document.getElementById("roleBadge");
         badge.innerText = role;
+        initMonthFilters();
+
         if (isAdmin()) {
             badge.classList.add("admin");
             document.getElementById("pageSubtitle").innerText =
@@ -608,7 +663,7 @@
         const id = getCustomerId("bill_customer_id");
         if (!id) return;
 
-        fetch(`${API}/final-bill/${id}`)
+        fetch(`${API}/final-bill/${id}${monthYearQuery("billMonthFilter")}`)
         .then(res => res.json())
         .then(data => {
             document.getElementById("bill_result").innerHTML = `
@@ -649,9 +704,11 @@
         const id = getCustomerId("history_customer_id");
         if (!id) return;
 
+        const q = monthYearQuery("historyMonthFilter");
+
         Promise.all([
-            fetch(`${API}/tiffin-history/${id}`).then(r => r.json()),
-            fetch(`${API}/payment-history/${id}`).then(r => r.json())
+            fetch(`${API}/tiffin-history/${id}${q}`).then(r => r.json()),
+            fetch(`${API}/payment-history/${id}${q}`).then(r => r.json())
         ])
         .then(([tiffins, payments]) => {
             document.getElementById("tiffin_history").innerHTML = renderTable(tiffins, [

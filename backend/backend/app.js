@@ -330,11 +330,17 @@ app.post('/add-payment', (req, res) => {
 
 // TIFFIN HISTORY
 app.get('/tiffin-history/:id', (req, res) => {
+    const { month, year } = req.query;
+    const hasFilter = month && year;
+
     const sql = `SELECT id, date, type, quantity, extra_roti, extra_bhakari
                  FROM tiffin WHERE customer_id = ?
+                 ${hasFilter ? 'AND MONTH(date) = ? AND YEAR(date) = ?' : ''}
                  ORDER BY date DESC`;
 
-    db.query(sql, [req.params.id], (err, result) => {
+    const params = hasFilter ? [req.params.id, month, year] : [req.params.id];
+
+    db.query(sql, params, (err, result) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ message: "Error fetching tiffin history" });
@@ -364,11 +370,17 @@ app.delete('/tiffin/:id', (req, res) => {
 
 // PAYMENT HISTORY
 app.get('/payment-history/:id', (req, res) => {
+    const { month, year } = req.query;
+    const hasFilter = month && year;
+
     const sql = `SELECT date, amount_paid
                  FROM payments WHERE customer_id = ?
+                 ${hasFilter ? 'AND MONTH(date) = ? AND YEAR(date) = ?' : ''}
                  ORDER BY date DESC`;
 
-    db.query(sql, [req.params.id], (err, result) => {
+    const params = hasFilter ? [req.params.id, month, year] : [req.params.id];
+
+    db.query(sql, params, (err, result) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ message: "Error fetching payment history" });
@@ -381,24 +393,31 @@ app.get('/payment-history/:id', (req, res) => {
 // FINAL BILL
 app.get('/final-bill/:id', (req, res) => {
     const id = req.params.id;
+    const { month, year } = req.query;
+    const hasFilter = month && year;
 
     const tiffinSql = `SELECT
                               SUM(CASE WHEN type = 'Fast' THEN quantity ELSE 0 END) AS fastTiffin,
                               SUM(CASE WHEN type != 'Fast' THEN quantity ELSE 0 END) AS regularTiffin,
                               SUM(extra_roti) AS totalRoti,
                               SUM(extra_bhakari) AS totalBhakari
-                       FROM tiffin WHERE customer_id = ?`;
+                       FROM tiffin WHERE customer_id = ?
+                       ${hasFilter ? 'AND MONTH(date) = ? AND YEAR(date) = ?' : ''}`;
 
     const paymentSql = `SELECT SUM(amount_paid) AS totalPaid
-                        FROM payments WHERE customer_id = ?`;
+                        FROM payments WHERE customer_id = ?
+                        ${hasFilter ? 'AND MONTH(date) = ? AND YEAR(date) = ?' : ''}`;
 
-    db.query(tiffinSql, [id], (err, tiffinResult) => {
+    const tiffinParams  = hasFilter ? [id, month, year] : [id];
+    const paymentParams = hasFilter ? [id, month, year] : [id];
+
+    db.query(tiffinSql, tiffinParams, (err, tiffinResult) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ message: "Error calculating bill" });
         }
 
-        db.query(paymentSql, [id], (err, paymentResult) => {
+        db.query(paymentSql, paymentParams, (err, paymentResult) => {
             if (err) {
                 console.error(err);
                 return res.status(500).json({ message: "Error calculating payment" });
@@ -431,6 +450,9 @@ app.get('/final-bill/:id', (req, res) => {
 
 // ALL CUSTOMERS SUMMARY (Admin list — name, id, total tiffins, total bill)
 app.get('/all-customers-summary', (req, res) => {
+    const { month, year } = req.query;
+    const hasFilter = month && year;
+
     const customersSql = `SELECT id, name FROM customers WHERE role = 'customer' ORDER BY id ASC`;
 
     const tiffinSql = `SELECT customer_id,
@@ -438,10 +460,17 @@ app.get('/all-customers-summary', (req, res) => {
                               SUM(CASE WHEN type != 'Fast' THEN quantity ELSE 0 END) AS regularTiffin,
                               SUM(extra_roti) AS totalRoti,
                               SUM(extra_bhakari) AS totalBhakari
-                       FROM tiffin GROUP BY customer_id`;
+                       FROM tiffin
+                       ${hasFilter ? 'WHERE MONTH(date) = ? AND YEAR(date) = ?' : ''}
+                       GROUP BY customer_id`;
 
     const paymentSql = `SELECT customer_id, SUM(amount_paid) AS totalPaid
-                        FROM payments GROUP BY customer_id`;
+                        FROM payments
+                        ${hasFilter ? 'WHERE MONTH(date) = ? AND YEAR(date) = ?' : ''}
+                        GROUP BY customer_id`;
+
+    const tiffinParams  = hasFilter ? [month, year] : [];
+    const paymentParams = hasFilter ? [month, year] : [];
 
     db.query(customersSql, (err, customers) => {
         if (err) {
@@ -449,13 +478,13 @@ app.get('/all-customers-summary', (req, res) => {
             return res.status(500).json({ message: "Error fetching customers" });
         }
 
-        db.query(tiffinSql, (err, tiffinRows) => {
+        db.query(tiffinSql, tiffinParams, (err, tiffinRows) => {
             if (err) {
                 console.error(err);
                 return res.status(500).json({ message: "Error fetching tiffin data" });
             }
 
-            db.query(paymentSql, (err, paymentRows) => {
+            db.query(paymentSql, paymentParams, (err, paymentRows) => {
                 if (err) {
                     console.error(err);
                     return res.status(500).json({ message: "Error fetching payment data" });
