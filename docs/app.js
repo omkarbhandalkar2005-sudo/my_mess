@@ -195,60 +195,6 @@ function handleAccountModalKeydown(e) {
     }
 }
 
-// ── Hamburger sidebar drawer ──
-let lastFocusedNavEl = null;
-
-function openSidebar() {
-    const sidebar = document.getElementById("sidebarDrawer");
-    const overlay = document.getElementById("sidebarOverlay");
-    const btn = document.getElementById("hamburgerBtn");
-    if (!sidebar || !overlay) return;
-    lastFocusedNavEl = document.activeElement;
-    sidebar.classList.add("open");
-    overlay.classList.add("open");
-    document.body.classList.add("sidebar-open");
-    if (btn) btn.setAttribute("aria-expanded", "true");
-    sidebar.focus();
-    document.addEventListener("keydown", handleSidebarKeydown);
-}
-
-function closeSidebar() {
-    const sidebar = document.getElementById("sidebarDrawer");
-    const overlay = document.getElementById("sidebarOverlay");
-    const btn = document.getElementById("hamburgerBtn");
-    if (!sidebar || !overlay) return;
-    sidebar.classList.remove("open");
-    overlay.classList.remove("open");
-    document.body.classList.remove("sidebar-open");
-    if (btn) btn.setAttribute("aria-expanded", "false");
-    document.removeEventListener("keydown", handleSidebarKeydown);
-    if (lastFocusedNavEl) lastFocusedNavEl.focus();
-}
-
-function handleSidebarKeydown(e) {
-    const sidebar = document.getElementById("sidebarDrawer");
-    if (!sidebar) return;
-
-    if (e.key === "Escape") {
-        closeSidebar();
-        return;
-    }
-
-    if (e.key === "Tab") {
-        const focusable = sidebar.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
-        if (!focusable.length) return;
-        const first = focusable[0];
-        const last = focusable[focusable.length - 1];
-
-        if (e.shiftKey && document.activeElement === first) {
-            e.preventDefault();
-            last.focus();
-        } else if (!e.shiftKey && document.activeElement === last) {
-            e.preventDefault();
-            first.focus();
-        }
-    }
-}
 
 function logout() {
     localStorage.clear();
