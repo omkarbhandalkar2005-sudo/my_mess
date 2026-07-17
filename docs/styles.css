@@ -617,6 +617,11 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
     flex-grow: 1;
 }
 
+.meal-food-type {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+}
+
 .meal-status {
     text-align: center;
     padding: 0.55rem;

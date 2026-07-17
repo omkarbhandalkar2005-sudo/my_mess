@@ -95,13 +95,23 @@
 
         <!-- Today's Booking Requests (Admin) -->
         <section class="card grid-full admin-only" id="bookingsSection" aria-labelledby="bookingsHeading">
-            <div class="card-header">
-                <div class="card-icon amber" aria-hidden="true">
-                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                        <path d="M3 2v7c0 1.1.9 2 2 2h1a2 2 0 0 0 2-2V2M7 2v20M17 2v20M17 2a5 5 0 0 1 0 10"/>
-                    </svg>
+            <div class="card-header month-filter-header">
+                <div class="month-filter-title">
+                    <div class="card-icon amber" aria-hidden="true">
+                        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                            <path d="M3 2v7c0 1.1.9 2 2 2h1a2 2 0 0 0 2-2V2M7 2v20M17 2v20M17 2a5 5 0 0 1 0 10"/>
+                        </svg>
+                    </div>
+                    <h2 id="bookingsHeading">Today's Booking Requests</h2>
                 </div>
-                <h2 id="bookingsHeading">Today's Booking Requests</h2>
+                <label class="month-filter-label" for="bookingsFoodTypeFilter">
+                    <span class="sr-only">Filter by meal type</span>
+                    <select id="bookingsFoodTypeFilter" class="month-filter-input" aria-label="Filter by meal type" onchange="loadBookings()">
+                        <option value="all">All</option>
+                        <option value="Veg">Veg</option>
+                        <option value="Non-Veg">Non-Veg</option>
+                    </select>
+                </label>
             </div>
             <div id="bookingsList" aria-live="polite"></div>
         </section>
@@ -244,6 +254,13 @@
                         <textarea id="simple_lunch_text" rows="3" placeholder="e.g. Roti, Rice, Dal, Sabzi, Salad"></textarea>
                     </div>
                     <div class="form-group">
+                        <label for="simple_lunch_food_type">Meal Type</label>
+                        <select id="simple_lunch_food_type">
+                            <option value="Veg">Veg</option>
+                            <option value="Non-Veg">Non-Veg</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
                         <label for="simple_lunch_time">Serving Time</label>
                         <input type="time" id="simple_lunch_time">
                     </div>
@@ -253,6 +270,13 @@
                     <div class="form-group">
                         <label for="simple_dinner_text">What's on the menu?</label>
                         <textarea id="simple_dinner_text" rows="3" placeholder="e.g. Roti, Rice, Chhole, Salad"></textarea>
+                    </div>
+                    <div class="form-group">
+                        <label for="simple_dinner_food_type">Meal Type</label>
+                        <select id="simple_dinner_food_type">
+                            <option value="Veg">Veg</option>
+                            <option value="Non-Veg">Non-Veg</option>
+                        </select>
                     </div>
                     <div class="form-group">
                         <label for="simple_dinner_time">Serving Time</label>

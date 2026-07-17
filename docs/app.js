@@ -492,6 +492,7 @@ function loadTodaysMeals() {
                     ${info.meal_time ? `<span class="meal-time">${formatTime12(info.meal_time)}</span>` : ""}
                 </div>
                 <p class="meal-menu">${info.menu_text || "—"}</p>
+                ${info.food_type ? `<p class="meal-food-type">Meal Type: ${info.food_type}</p>` : ""}
                 ${actionHtml}
             </div>`;
         }).join("");
@@ -525,9 +526,16 @@ function loadBookings() {
     const container = document.getElementById("bookingsList");
     container.innerHTML = '<p class="empty">Loading...</p>';
 
+    const filterEl = document.getElementById("bookingsFoodTypeFilter");
+    const foodTypeFilter = filterEl ? filterEl.value : "all";
+
     fetch(`${API}/admin/bookings/today`)
     .then(res => res.json())
     .then(data => {
+        if (foodTypeFilter !== "all") {
+            data = data.filter(b => b.food_type === foodTypeFilter);
+        }
+
         if (!data.length) {
             container.innerHTML = '<p class="empty">No booking requests today.</p>';
             return;
@@ -547,13 +555,14 @@ function loadBookings() {
             return `<tr>
                 <td>${b.name} (#${b.customer_id})</td>
                 <td>${b.meal_type}</td>
+                <td>${b.food_type || "—"}</td>
                 <td style="color:${statusColor}; text-transform:capitalize;">${b.status}</td>
                 <td>${actionHtml}</td>
             </tr>`;
         }).join("");
 
         container.innerHTML = `<div class="table-wrap"><table>
-            <thead><tr><th>Customer</th><th>Meal</th><th>Status</th><th>Action</th></tr></thead>
+            <thead><tr><th>Customer</th><th>Meal</th><th>Meal Type</th><th>Status</th><th>Action</th></tr></thead>
             <tbody>${rows}</tbody>
         </table></div>`;
     })
@@ -611,10 +620,12 @@ function renderMenuDay(day) {
     const lunch  = menuDataCache[`${day}_Lunch`]  || {};
     const dinner = menuDataCache[`${day}_Dinner`] || {};
 
-    document.getElementById("simple_lunch_text").value  = lunch.menu_text  || "";
-    document.getElementById("simple_lunch_time").value  = lunch.meal_time  || "";
-    document.getElementById("simple_dinner_text").value = dinner.menu_text || "";
-    document.getElementById("simple_dinner_time").value = dinner.meal_time || "";
+    document.getElementById("simple_lunch_text").value      = lunch.menu_text  || "";
+    document.getElementById("simple_lunch_food_type").value = lunch.food_type  || "Veg";
+    document.getElementById("simple_lunch_time").value      = lunch.meal_time  || "";
+    document.getElementById("simple_dinner_text").value      = dinner.menu_text || "";
+    document.getElementById("simple_dinner_food_type").value = dinner.food_type || "Veg";
+    document.getElementById("simple_dinner_time").value      = dinner.meal_time || "";
 
     document.getElementById("menu_save_result").innerHTML = "";
 }
@@ -628,12 +639,14 @@ function saveMenuDay() {
         day_of_week: day,
         meal_type: "Lunch",
         menu_text: document.getElementById("simple_lunch_text").value,
+        food_type: document.getElementById("simple_lunch_food_type").value,
         meal_time: document.getElementById("simple_lunch_time").value
     };
     const dinnerPayload = {
         day_of_week: day,
         meal_type: "Dinner",
         menu_text: document.getElementById("simple_dinner_text").value,
+        food_type: document.getElementById("simple_dinner_food_type").value,
         meal_time: document.getElementById("simple_dinner_time").value
     };
 
@@ -642,8 +655,8 @@ function saveMenuDay() {
         fetch(`${API}/admin/menu`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(dinnerPayload) })
     ])
     .then(() => {
-        menuDataCache[`${day}_Lunch`]  = { menu_text: lunchPayload.menu_text,  meal_time: lunchPayload.meal_time };
-        menuDataCache[`${day}_Dinner`] = { menu_text: dinnerPayload.menu_text, meal_time: dinnerPayload.meal_time };
+        menuDataCache[`${day}_Lunch`]  = { menu_text: lunchPayload.menu_text,  food_type: lunchPayload.food_type,  meal_time: lunchPayload.meal_time };
+        menuDataCache[`${day}_Dinner`] = { menu_text: dinnerPayload.menu_text, food_type: dinnerPayload.food_type, meal_time: dinnerPayload.meal_time };
         showAlert("menu_save_result", `${day}'s menu saved ✅`, "success");
     })
     .catch(err => {
