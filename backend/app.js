@@ -644,16 +644,15 @@ app.post('/bookings', (req, res) => {
 
 // ADMIN: Get today's booking requests (all customers)
 app.get('/admin/bookings/today', (req, res) => {
-    const { date, day } = getIST();
+    const { date } = getIST();
 
-    const sql = `SELECT b.id, b.customer_id, c.name, b.meal_type, b.selected_food_type, b.status, b.created_at, dm.food_type
+    const sql = `SELECT b.id, b.customer_id, c.name, b.meal_type, b.selected_food_type, b.status, b.created_at
                  FROM bookings b
                  JOIN customers c ON c.id = b.customer_id
-                 LEFT JOIN daily_menus dm ON dm.day_of_week = ? AND dm.meal_type = b.meal_type
                  WHERE b.booking_date = ?
                  ORDER BY b.created_at ASC`;
 
-    db.query(sql, [day, date], (err, rows) => {
+    db.query(sql, [date], (err, rows) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ message: "Error fetching bookings" });

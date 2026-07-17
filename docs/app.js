@@ -508,7 +508,6 @@ function loadTodaysMeals() {
                     ${info.meal_time ? `<span class="meal-time">${formatTime12(info.meal_time)}</span>` : ""}
                 </div>
                 ${menuHtml}
-                ${info.food_type ? `<p class="meal-food-type">Meal Type: ${info.food_type}</p>` : ""}
                 ${actionHtml}
             </div>`;
         }).join("");
@@ -553,7 +552,7 @@ function loadBookings() {
     .then(res => res.json())
     .then(data => {
         if (foodTypeFilter !== "all") {
-            data = data.filter(b => b.food_type === foodTypeFilter);
+            data = data.filter(b => b.selected_food_type === foodTypeFilter);
         }
 
         if (!data.length) {
@@ -575,7 +574,7 @@ function loadBookings() {
             return `<tr>
                 <td>${b.name} (#${b.customer_id})</td>
                 <td>${b.meal_type}</td>
-                <td>${b.food_type || "—"}</td>
+                <td>${b.selected_food_type || "—"}</td>
                 <td style="color:${statusColor}; text-transform:capitalize;">${b.status}</td>
                 <td>${actionHtml}</td>
             </tr>`;
