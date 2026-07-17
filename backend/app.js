@@ -534,7 +534,7 @@ app.get('/menu/today/:customer_id', (req, res) => {
     const { date, day } = getIST();
     const customerId = req.params.customer_id;
 
-    db.query("SELECT meal_type, veg_menu_text, nonveg_menu_text, meal_time FROM daily_menus WHERE day_of_week = ?", [day], (err, menuRows) => {
+    db.query("SELECT meal_type, veg_menu_text, nonveg_menu_text, meal_time, food_type FROM daily_menus WHERE day_of_week = ?", [day], (err, menuRows) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ message: "Error fetching menu" });
@@ -564,6 +564,7 @@ app.get('/menu/today/:customer_id', (req, res) => {
                         veg_menu_text: m.veg_menu_text || null,
                         nonveg_menu_text: m.nonveg_menu_text || null,
                         meal_time: m.meal_time || null,
+                        food_type: m.food_type || null,
                         status: b ? b.status : null,
                         selected_food_type: b ? b.selected_food_type : null
                     };
@@ -643,15 +644,16 @@ app.post('/bookings', (req, res) => {
 
 // ADMIN: Get today's booking requests (all customers)
 app.get('/admin/bookings/today', (req, res) => {
-    const { date } = getIST();
+    const { date, day } = getIST();
 
-    const sql = `SELECT b.id, b.customer_id, c.name, b.meal_type, b.selected_food_type, b.status, b.created_at
+    const sql = `SELECT b.id, b.customer_id, c.name, b.meal_type, b.selected_food_type, b.status, b.created_at, dm.food_type
                  FROM bookings b
                  JOIN customers c ON c.id = b.customer_id
+                 LEFT JOIN daily_menus dm ON dm.day_of_week = ? AND dm.meal_type = b.meal_type
                  WHERE b.booking_date = ?
                  ORDER BY b.created_at ASC`;
 
-    db.query(sql, [date], (err, rows) => {
+    db.query(sql, [day, date], (err, rows) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ message: "Error fetching bookings" });
@@ -723,7 +725,7 @@ app.post('/admin/bookings/:id/reject', (req, res) => {
 
 // GET full weekly menu (all days, Lunch + Dinner)
 app.get('/admin/menu', (req, res) => {
-    db.query("SELECT day_of_week, meal_type, veg_menu_text, nonveg_menu_text, meal_time FROM daily_menus", (err, rows) => {
+    db.query("SELECT day_of_week, meal_type, veg_menu_text, nonveg_menu_text, meal_time, food_type FROM daily_menus", (err, rows) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ message: "Error fetching menu" });
@@ -734,7 +736,7 @@ app.get('/admin/menu', (req, res) => {
 
 // UPDATE (or create) a single day+meal's menu and timing
 app.put('/admin/menu', (req, res) => {
-    const { day_of_week, meal_type, veg_menu_text, nonveg_menu_text, meal_time } = req.body;
+    const { day_of_week, meal_type, veg_menu_text, nonveg_menu_text, meal_time, food_type } = req.body;
 
     if (!day_of_week || !meal_type) {
         return res.status(400).json({ message: "Day and meal type are required" });
@@ -744,11 +746,11 @@ app.put('/admin/menu', (req, res) => {
         return res.status(400).json({ message: "Veg menu is required" });
     }
 
-    const sql = `INSERT INTO daily_menus (day_of_week, meal_type, veg_menu_text, nonveg_menu_text, meal_time)
-                 VALUES (?, ?, ?, ?, ?)
-                 ON DUPLICATE KEY UPDATE veg_menu_text = VALUES(veg_menu_text), nonveg_menu_text = VALUES(nonveg_menu_text), meal_time = VALUES(meal_time)`;
+    const sql = `INSERT INTO daily_menus (day_of_week, meal_type, veg_menu_text, nonveg_menu_text, meal_time, food_type)
+                 VALUES (?, ?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE veg_menu_text = VALUES(veg_menu_text), nonveg_menu_text = VALUES(nonveg_menu_text), meal_time = VALUES(meal_time), food_type = VALUES(food_type)`;
 
-    db.query(sql, [day_of_week, meal_type, veg_menu_text || '', nonveg_menu_text || null, meal_time || null], (err) => {
+    db.query(sql, [day_of_week, meal_type, veg_menu_text || '', nonveg_menu_text || null, meal_time || null, food_type || 'Veg'], (err) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ message: "Error saving menu" });

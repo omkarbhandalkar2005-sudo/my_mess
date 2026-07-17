@@ -508,6 +508,7 @@ function loadTodaysMeals() {
                     ${info.meal_time ? `<span class="meal-time">${formatTime12(info.meal_time)}</span>` : ""}
                 </div>
                 ${menuHtml}
+                ${info.food_type ? `<p class="meal-food-type">Meal Type: ${info.food_type}</p>` : ""}
                 ${actionHtml}
             </div>`;
         }).join("");
@@ -552,7 +553,7 @@ function loadBookings() {
     .then(res => res.json())
     .then(data => {
         if (foodTypeFilter !== "all") {
-            data = data.filter(b => b.selected_food_type === foodTypeFilter);
+            data = data.filter(b => b.food_type === foodTypeFilter);
         }
 
         if (!data.length) {
@@ -574,7 +575,7 @@ function loadBookings() {
             return `<tr>
                 <td>${b.name} (#${b.customer_id})</td>
                 <td>${b.meal_type}</td>
-                <td>${b.selected_food_type || "—"}</td>
+                <td>${b.food_type || "—"}</td>
                 <td style="color:${statusColor}; text-transform:capitalize;">${b.status}</td>
                 <td>${actionHtml}</td>
             </tr>`;
@@ -641,12 +642,14 @@ function renderMenuDay(day) {
 
     document.getElementById("simple_lunch_text").value  = lunch.veg_menu_text  || "";
     document.getElementById("simple_lunch_time").value  = lunch.meal_time  || "";
+    document.getElementById("simple_lunch_food_type").value = lunch.food_type || "Veg";
     document.getElementById("simple_lunch_nonveg_toggle").checked = !!lunch.nonveg_menu_text;
     document.getElementById("simple_lunch_nonveg_text").value = lunch.nonveg_menu_text || "";
     document.getElementById("simple_lunch_nonveg_group").hidden = !lunch.nonveg_menu_text;
 
     document.getElementById("simple_dinner_text").value = dinner.veg_menu_text || "";
     document.getElementById("simple_dinner_time").value = dinner.meal_time || "";
+    document.getElementById("simple_dinner_food_type").value = dinner.food_type || "Veg";
     document.getElementById("simple_dinner_nonveg_toggle").checked = !!dinner.nonveg_menu_text;
     document.getElementById("simple_dinner_nonveg_text").value = dinner.nonveg_menu_text || "";
     document.getElementById("simple_dinner_nonveg_group").hidden = !dinner.nonveg_menu_text;
@@ -676,6 +679,7 @@ function saveMenuDay() {
         meal_type: "Lunch",
         veg_menu_text: document.getElementById("simple_lunch_text").value,
         nonveg_menu_text: lunchNonVegEnabled ? document.getElementById("simple_lunch_nonveg_text").value : null,
+        food_type: document.getElementById("simple_lunch_food_type").value,
         meal_time: document.getElementById("simple_lunch_time").value
     };
     const dinnerPayload = {
@@ -683,6 +687,7 @@ function saveMenuDay() {
         meal_type: "Dinner",
         veg_menu_text: document.getElementById("simple_dinner_text").value,
         nonveg_menu_text: dinnerNonVegEnabled ? document.getElementById("simple_dinner_nonveg_text").value : null,
+        food_type: document.getElementById("simple_dinner_food_type").value,
         meal_time: document.getElementById("simple_dinner_time").value
     };
 
@@ -691,8 +696,8 @@ function saveMenuDay() {
         fetch(`${API}/admin/menu`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(dinnerPayload) })
     ])
     .then(() => {
-        menuDataCache[`${day}_Lunch`]  = { veg_menu_text: lunchPayload.veg_menu_text,  nonveg_menu_text: lunchPayload.nonveg_menu_text,  meal_time: lunchPayload.meal_time };
-        menuDataCache[`${day}_Dinner`] = { veg_menu_text: dinnerPayload.veg_menu_text, nonveg_menu_text: dinnerPayload.nonveg_menu_text, meal_time: dinnerPayload.meal_time };
+        menuDataCache[`${day}_Lunch`]  = { veg_menu_text: lunchPayload.veg_menu_text,  nonveg_menu_text: lunchPayload.nonveg_menu_text,  food_type: lunchPayload.food_type,  meal_time: lunchPayload.meal_time };
+        menuDataCache[`${day}_Dinner`] = { veg_menu_text: dinnerPayload.veg_menu_text, nonveg_menu_text: dinnerPayload.nonveg_menu_text, food_type: dinnerPayload.food_type, meal_time: dinnerPayload.meal_time };
         showAlert("menu_save_result", `${day}'s menu saved ✅`, "success");
     })
     .catch(err => {
