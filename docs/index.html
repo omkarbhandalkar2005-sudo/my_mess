@@ -250,15 +250,18 @@
             <div class="menu-manage-body">
                 <div class="menu-simple-block" id="lunchFields">
                     <div class="form-group">
-                        <label for="simple_lunch_text">What's on the menu?</label>
+                        <label for="simple_lunch_text">Veg Menu</label>
                         <textarea id="simple_lunch_text" rows="3" placeholder="e.g. Roti, Rice, Dal, Sabzi, Salad"></textarea>
                     </div>
-                    <div class="form-group">
-                        <label for="simple_lunch_food_type">Meal Type</label>
-                        <select id="simple_lunch_food_type">
-                            <option value="Veg">Veg</option>
-                            <option value="Non-Veg">Non-Veg</option>
-                        </select>
+                    <div class="form-group menu-nonveg-toggle-row">
+                        <label for="simple_lunch_nonveg_toggle" class="menu-nonveg-toggle-label">
+                            <input type="checkbox" id="simple_lunch_nonveg_toggle" onchange="toggleNonVegField('lunch')">
+                            Enable Non-Veg Menu
+                        </label>
+                    </div>
+                    <div class="form-group" id="simple_lunch_nonveg_group" hidden>
+                        <label for="simple_lunch_nonveg_text">Non-Veg Menu</label>
+                        <textarea id="simple_lunch_nonveg_text" rows="3" placeholder="e.g. Chicken Curry"></textarea>
                     </div>
                     <div class="form-group">
                         <label for="simple_lunch_time">Serving Time</label>
@@ -268,15 +271,18 @@
 
                 <div class="menu-simple-block" id="dinnerFields" hidden>
                     <div class="form-group">
-                        <label for="simple_dinner_text">What's on the menu?</label>
+                        <label for="simple_dinner_text">Veg Menu</label>
                         <textarea id="simple_dinner_text" rows="3" placeholder="e.g. Roti, Rice, Chhole, Salad"></textarea>
                     </div>
-                    <div class="form-group">
-                        <label for="simple_dinner_food_type">Meal Type</label>
-                        <select id="simple_dinner_food_type">
-                            <option value="Veg">Veg</option>
-                            <option value="Non-Veg">Non-Veg</option>
-                        </select>
+                    <div class="form-group menu-nonveg-toggle-row">
+                        <label for="simple_dinner_nonveg_toggle" class="menu-nonveg-toggle-label">
+                            <input type="checkbox" id="simple_dinner_nonveg_toggle" onchange="toggleNonVegField('dinner')">
+                            Enable Non-Veg Menu
+                        </label>
+                    </div>
+                    <div class="form-group" id="simple_dinner_nonveg_group" hidden>
+                        <label for="simple_dinner_nonveg_text">Non-Veg Menu</label>
+                        <textarea id="simple_dinner_nonveg_text" rows="3" placeholder="e.g. Chicken Curry"></textarea>
                     </div>
                     <div class="form-group">
                         <label for="simple_dinner_time">Serving Time</label>

@@ -634,6 +634,47 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
 .meal-status.approved { background: var(--success-light); color: var(--success); }
 .meal-status.rejected { background: var(--danger-light); color: var(--danger); }
 
+/* Choose Meal (Veg / Non-Veg) selector — shown on a meal card only when
+   both a Veg and a Non-Veg menu exist for that meal. */
+.meal-food-choice {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+    flex-grow: 1;
+}
+
+.meal-choice-label {
+    font-size: var(--text-xs);
+    font-weight: 700;
+    color: var(--text-muted);
+    text-transform: uppercase;
+    letter-spacing: 0.02em;
+}
+
+.meal-choice-option {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--space-2);
+    padding: var(--space-2);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    cursor: pointer;
+}
+
+.meal-choice-option input[type="radio"] {
+    margin-top: 3px;
+    accent-color: var(--primary-strong);
+    cursor: pointer;
+}
+
+.meal-choice-text {
+    font-size: 0.8125rem;
+    color: var(--text-muted);
+    line-height: 1.5;
+}
+
+.meal-choice-text strong { color: var(--text); }
+
 /* ── Month-Year filter (All Customers / Bill Summary / Activity History) ── */
 .sr-only {
     position: absolute;
@@ -761,6 +802,20 @@ tbody tr:hover { background: rgba(255, 255, 255, 0.04); }
 .menu-simple-block label {
     font-size: var(--text-sm) !important;
     font-weight: 600 !important;
+}
+
+.menu-nonveg-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: var(--space-2);
+    cursor: pointer;
+}
+
+.menu-nonveg-toggle-label input[type="checkbox"] {
+    width: 16px;
+    height: 16px;
+    accent-color: var(--primary-strong);
+    cursor: pointer;
 }
 
 .menu-simple-block textarea {

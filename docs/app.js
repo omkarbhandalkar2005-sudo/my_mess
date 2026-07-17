@@ -468,8 +468,10 @@ function loadTodaysMeals() {
         ];
 
         container.innerHTML = meals.map(m => {
-            const info    = data[m.key] || {};
-            const hasMenu = !!info.menu_text;
+            const info      = data[m.key] || {};
+            const hasVeg    = !!info.veg_menu_text;
+            const hasNonVeg = !!info.nonveg_menu_text;
+            const hasMenu   = hasVeg || hasNonVeg;
             let actionHtml;
 
             if (!hasMenu) {
@@ -486,13 +488,26 @@ function loadTodaysMeals() {
                 actionHtml = `<button class="btn btn-primary" onclick="bookMeal('${m.label}')">Book Tiffin</button>`;
             }
 
+            const menuHtml = hasNonVeg
+                ? `<div class="meal-food-choice" role="radiogroup" aria-label="Choose meal">
+                        <p class="meal-choice-label">Choose Meal</p>
+                        <label class="meal-choice-option">
+                            <input type="radio" name="foodType_${m.key}" value="Veg" checked>
+                            <span class="meal-choice-text"><strong>Veg</strong><br>${info.veg_menu_text || "—"}</span>
+                        </label>
+                        <label class="meal-choice-option">
+                            <input type="radio" name="foodType_${m.key}" value="Non-Veg">
+                            <span class="meal-choice-text"><strong>Non-Veg</strong><br>${info.nonveg_menu_text}</span>
+                        </label>
+                    </div>`
+                : `<p class="meal-menu">${info.veg_menu_text || "—"}</p>`;
+
             return `<div class="meal-card">
                 <div class="meal-card-head">
                     <h3>${m.label}</h3>
                     ${info.meal_time ? `<span class="meal-time">${formatTime12(info.meal_time)}</span>` : ""}
                 </div>
-                <p class="meal-menu">${info.menu_text || "—"}</p>
-                ${info.food_type ? `<p class="meal-food-type">Meal Type: ${info.food_type}</p>` : ""}
+                ${menuHtml}
                 ${actionHtml}
             </div>`;
         }).join("");
@@ -504,12 +519,16 @@ function loadTodaysMeals() {
 }
 
 function bookMeal(mealType) {
-    const id = localStorage.getItem("customer_id");
+    const id  = localStorage.getItem("customer_id");
+    const key = mealType.toLowerCase();
+
+    const selectedRadio   = document.querySelector(`input[name="foodType_${key}"]:checked`);
+    const selectedFoodType = selectedRadio ? selectedRadio.value : "Veg";
 
     fetch(`${API}/bookings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customer_id: id, meal_type: mealType })
+        body: JSON.stringify({ customer_id: id, meal_type: mealType, selected_food_type: selectedFoodType })
     })
     .then(res => res.json())
     .then(data => {
@@ -533,7 +552,7 @@ function loadBookings() {
     .then(res => res.json())
     .then(data => {
         if (foodTypeFilter !== "all") {
-            data = data.filter(b => b.food_type === foodTypeFilter);
+            data = data.filter(b => b.selected_food_type === foodTypeFilter);
         }
 
         if (!data.length) {
@@ -555,7 +574,7 @@ function loadBookings() {
             return `<tr>
                 <td>${b.name} (#${b.customer_id})</td>
                 <td>${b.meal_type}</td>
-                <td>${b.food_type || "—"}</td>
+                <td>${b.selected_food_type || "—"}</td>
                 <td style="color:${statusColor}; text-transform:capitalize;">${b.status}</td>
                 <td>${actionHtml}</td>
             </tr>`;
@@ -620,14 +639,28 @@ function renderMenuDay(day) {
     const lunch  = menuDataCache[`${day}_Lunch`]  || {};
     const dinner = menuDataCache[`${day}_Dinner`] || {};
 
-    document.getElementById("simple_lunch_text").value      = lunch.menu_text  || "";
-    document.getElementById("simple_lunch_food_type").value = lunch.food_type  || "Veg";
-    document.getElementById("simple_lunch_time").value      = lunch.meal_time  || "";
-    document.getElementById("simple_dinner_text").value      = dinner.menu_text || "";
-    document.getElementById("simple_dinner_food_type").value = dinner.food_type || "Veg";
-    document.getElementById("simple_dinner_time").value      = dinner.meal_time || "";
+    document.getElementById("simple_lunch_text").value  = lunch.veg_menu_text  || "";
+    document.getElementById("simple_lunch_time").value  = lunch.meal_time  || "";
+    document.getElementById("simple_lunch_nonveg_toggle").checked = !!lunch.nonveg_menu_text;
+    document.getElementById("simple_lunch_nonveg_text").value = lunch.nonveg_menu_text || "";
+    document.getElementById("simple_lunch_nonveg_group").hidden = !lunch.nonveg_menu_text;
+
+    document.getElementById("simple_dinner_text").value = dinner.veg_menu_text || "";
+    document.getElementById("simple_dinner_time").value = dinner.meal_time || "";
+    document.getElementById("simple_dinner_nonveg_toggle").checked = !!dinner.nonveg_menu_text;
+    document.getElementById("simple_dinner_nonveg_text").value = dinner.nonveg_menu_text || "";
+    document.getElementById("simple_dinner_nonveg_group").hidden = !dinner.nonveg_menu_text;
 
     document.getElementById("menu_save_result").innerHTML = "";
+}
+
+// Shows/hides the Non-Veg textarea when the "Enable Non-Veg Menu" toggle is used.
+function toggleNonVegField(which) {
+    const checked = document.getElementById(`simple_${which}_nonveg_toggle`).checked;
+    document.getElementById(`simple_${which}_nonveg_group`).hidden = !checked;
+    if (!checked) {
+        document.getElementById(`simple_${which}_nonveg_text`).value = "";
+    }
 }
 
 function saveMenuDay() {
@@ -635,18 +668,21 @@ function saveMenuDay() {
     const btn = document.getElementById("saveMenuBtn");
     btn.disabled = true;
 
+    const lunchNonVegEnabled  = document.getElementById("simple_lunch_nonveg_toggle").checked;
+    const dinnerNonVegEnabled = document.getElementById("simple_dinner_nonveg_toggle").checked;
+
     const lunchPayload = {
         day_of_week: day,
         meal_type: "Lunch",
-        menu_text: document.getElementById("simple_lunch_text").value,
-        food_type: document.getElementById("simple_lunch_food_type").value,
+        veg_menu_text: document.getElementById("simple_lunch_text").value,
+        nonveg_menu_text: lunchNonVegEnabled ? document.getElementById("simple_lunch_nonveg_text").value : null,
         meal_time: document.getElementById("simple_lunch_time").value
     };
     const dinnerPayload = {
         day_of_week: day,
         meal_type: "Dinner",
-        menu_text: document.getElementById("simple_dinner_text").value,
-        food_type: document.getElementById("simple_dinner_food_type").value,
+        veg_menu_text: document.getElementById("simple_dinner_text").value,
+        nonveg_menu_text: dinnerNonVegEnabled ? document.getElementById("simple_dinner_nonveg_text").value : null,
         meal_time: document.getElementById("simple_dinner_time").value
     };
 
@@ -655,8 +691,8 @@ function saveMenuDay() {
         fetch(`${API}/admin/menu`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify(dinnerPayload) })
     ])
     .then(() => {
-        menuDataCache[`${day}_Lunch`]  = { menu_text: lunchPayload.menu_text,  food_type: lunchPayload.food_type,  meal_time: lunchPayload.meal_time };
-        menuDataCache[`${day}_Dinner`] = { menu_text: dinnerPayload.menu_text, food_type: dinnerPayload.food_type, meal_time: dinnerPayload.meal_time };
+        menuDataCache[`${day}_Lunch`]  = { veg_menu_text: lunchPayload.veg_menu_text,  nonveg_menu_text: lunchPayload.nonveg_menu_text,  meal_time: lunchPayload.meal_time };
+        menuDataCache[`${day}_Dinner`] = { veg_menu_text: dinnerPayload.veg_menu_text, nonveg_menu_text: dinnerPayload.nonveg_menu_text, meal_time: dinnerPayload.meal_time };
         showAlert("menu_save_result", `${day}'s menu saved ✅`, "success");
     })
     .catch(err => {

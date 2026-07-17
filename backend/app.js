@@ -534,14 +534,14 @@ app.get('/menu/today/:customer_id', (req, res) => {
     const { date, day } = getIST();
     const customerId = req.params.customer_id;
 
-    db.query("SELECT meal_type, menu_text, meal_time, food_type FROM daily_menus WHERE day_of_week = ?", [day], (err, menuRows) => {
+    db.query("SELECT meal_type, veg_menu_text, nonveg_menu_text, meal_time FROM daily_menus WHERE day_of_week = ?", [day], (err, menuRows) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ message: "Error fetching menu" });
         }
 
         db.query(
-            "SELECT id, meal_type, status FROM bookings WHERE customer_id = ? AND booking_date = ?",
+            "SELECT id, meal_type, status, selected_food_type FROM bookings WHERE customer_id = ? AND booking_date = ?",
             [customerId, date],
             (err, bookingRows) => {
                 if (err) {
@@ -561,10 +561,11 @@ app.get('/menu/today/:customer_id', (req, res) => {
                     const m = menuMap[meal] || {};
                     const b = bookingMap[meal] || null;
                     result[meal.toLowerCase()] = {
-                        menu_text: m.menu_text || null,
+                        veg_menu_text: m.veg_menu_text || null,
+                        nonveg_menu_text: m.nonveg_menu_text || null,
                         meal_time: m.meal_time || null,
-                        food_type: m.food_type || null,
-                        status: b ? b.status : null
+                        status: b ? b.status : null,
+                        selected_food_type: b ? b.selected_food_type : null
                     };
                 });
 
@@ -576,7 +577,7 @@ app.get('/menu/today/:customer_id', (req, res) => {
 
 // CUSTOMER: Book a tiffin for today (Lunch/Dinner)
 app.post('/bookings', (req, res) => {
-    const { customer_id, meal_type } = req.body;
+    const { customer_id, meal_type, selected_food_type } = req.body;
 
     if (!customer_id || !meal_type) {
         return res.status(400).json({ message: "Customer ID and meal type are required" });
@@ -584,6 +585,12 @@ app.post('/bookings', (req, res) => {
 
     if (!["Lunch", "Dinner"].includes(meal_type)) {
         return res.status(400).json({ message: "Invalid meal type" });
+    }
+
+    const foodType = selected_food_type || "Veg";
+
+    if (!["Veg", "Non-Veg"].includes(foodType)) {
+        return res.status(400).json({ message: "Invalid food type" });
     }
 
     const { date } = getIST();
@@ -606,8 +613,8 @@ app.post('/bookings', (req, res) => {
 
                 // Purani rejected booking thi, use pending pe reset kar do (rebook)
                 db.query(
-                    "UPDATE bookings SET status = 'pending', created_at = CURRENT_TIMESTAMP WHERE id = ?",
-                    [existing.id],
+                    "UPDATE bookings SET status = 'pending', selected_food_type = ?, created_at = CURRENT_TIMESTAMP WHERE id = ?",
+                    [foodType, existing.id],
                     (err) => {
                         if (err) {
                             console.error(err);
@@ -620,8 +627,8 @@ app.post('/bookings', (req, res) => {
             }
 
             db.query(
-                "INSERT INTO bookings (customer_id, booking_date, meal_type, status) VALUES (?, ?, ?, 'pending')",
-                [customer_id, date, meal_type],
+                "INSERT INTO bookings (customer_id, booking_date, meal_type, status, selected_food_type) VALUES (?, ?, ?, 'pending', ?)",
+                [customer_id, date, meal_type, foodType],
                 (err) => {
                     if (err) {
                         console.error(err);
@@ -636,16 +643,15 @@ app.post('/bookings', (req, res) => {
 
 // ADMIN: Get today's booking requests (all customers)
 app.get('/admin/bookings/today', (req, res) => {
-    const { date, day } = getIST();
+    const { date } = getIST();
 
-    const sql = `SELECT b.id, b.customer_id, c.name, b.meal_type, b.status, b.created_at, dm.food_type
+    const sql = `SELECT b.id, b.customer_id, c.name, b.meal_type, b.selected_food_type, b.status, b.created_at
                  FROM bookings b
                  JOIN customers c ON c.id = b.customer_id
-                 LEFT JOIN daily_menus dm ON dm.day_of_week = ? AND dm.meal_type = b.meal_type
                  WHERE b.booking_date = ?
                  ORDER BY b.created_at ASC`;
 
-    db.query(sql, [day, date], (err, rows) => {
+    db.query(sql, [date], (err, rows) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ message: "Error fetching bookings" });
@@ -717,7 +723,7 @@ app.post('/admin/bookings/:id/reject', (req, res) => {
 
 // GET full weekly menu (all days, Lunch + Dinner)
 app.get('/admin/menu', (req, res) => {
-    db.query("SELECT day_of_week, meal_type, menu_text, meal_time, food_type FROM daily_menus", (err, rows) => {
+    db.query("SELECT day_of_week, meal_type, veg_menu_text, nonveg_menu_text, meal_time FROM daily_menus", (err, rows) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ message: "Error fetching menu" });
@@ -728,17 +734,21 @@ app.get('/admin/menu', (req, res) => {
 
 // UPDATE (or create) a single day+meal's menu and timing
 app.put('/admin/menu', (req, res) => {
-    const { day_of_week, meal_type, menu_text, meal_time, food_type } = req.body;
+    const { day_of_week, meal_type, veg_menu_text, nonveg_menu_text, meal_time } = req.body;
 
     if (!day_of_week || !meal_type) {
         return res.status(400).json({ message: "Day and meal type are required" });
     }
 
-    const sql = `INSERT INTO daily_menus (day_of_week, meal_type, menu_text, meal_time, food_type)
-                 VALUES (?, ?, ?, ?, ?)
-                 ON DUPLICATE KEY UPDATE menu_text = VALUES(menu_text), meal_time = VALUES(meal_time), food_type = VALUES(food_type)`;
+    if (!veg_menu_text) {
+        return res.status(400).json({ message: "Veg menu is required" });
+    }
 
-    db.query(sql, [day_of_week, meal_type, menu_text || '', meal_time || null, food_type || 'Veg'], (err) => {
+    const sql = `INSERT INTO daily_menus (day_of_week, meal_type, veg_menu_text, nonveg_menu_text, meal_time)
+                 VALUES (?, ?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE veg_menu_text = VALUES(veg_menu_text), nonveg_menu_text = VALUES(nonveg_menu_text), meal_time = VALUES(meal_time)`;
+
+    db.query(sql, [day_of_week, meal_type, veg_menu_text || '', nonveg_menu_text || null, meal_time || null], (err) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ message: "Error saving menu" });
