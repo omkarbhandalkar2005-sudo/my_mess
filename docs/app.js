@@ -495,11 +495,11 @@ function loadTodaysMeals() {
                 ? `<div class="meal-food-choice" role="radiogroup" aria-label="Choose meal">
                         <p class="meal-choice-label">Choose Meal</p>
                         <label class="meal-choice-option">
-                            <input type="radio" name="foodType_${m.key}" value="Veg" checked>
+                            <input type="radio" name="foodType_${m.key}" value="Veg" ${info.selected_food_type !== "Non-Veg" ? "checked" : ""}>
                             <span class="meal-choice-text"><strong>Veg</strong><br>${info.veg_menu_text || "—"}</span>
                         </label>
                         <label class="meal-choice-option">
-                            <input type="radio" name="foodType_${m.key}" value="Non-Veg">
+                            <input type="radio" name="foodType_${m.key}" value="Non-Veg" ${info.selected_food_type === "Non-Veg" ? "checked" : ""}>
                             <span class="meal-choice-text"><strong>Non-Veg</strong><br>${info.nonveg_menu_text}</span>
                         </label>
                     </div>`

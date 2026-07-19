@@ -690,7 +690,7 @@ app.post('/admin/bookings/:id/approve', (req, res) => {
             const tiffinSql = `INSERT INTO tiffin (customer_id, date, type, quantity, extra_roti, extra_bhakari)
                                VALUES (?, ?, ?, 1, 0, 0)`;
 
-            db.query(tiffinSql, [booking.customer_id, booking.booking_date, booking.meal_type], (err) => {
+            db.query(tiffinSql, [booking.customer_id, booking.booking_date, booking.selected_food_type], (err) => {
                 if (err) {
                     console.error(err);
                     return res.status(500).json({ message: "Booking approved, but billing failed" });
