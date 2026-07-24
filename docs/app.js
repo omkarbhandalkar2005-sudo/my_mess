@@ -4,7 +4,7 @@
 // (Home, Add Tiffin, Record Payment, Customers, Activity History) can
 // reuse the same JavaScript, IDs, and event handlers.
 
-const API = "https://mess-tracker-production.up.railway.app";
+const API = "https://my-mess-q25u.onrender.com";
 
 if (localStorage.getItem("loggedIn") !== "true") {
     window.location.href = "login.html";
