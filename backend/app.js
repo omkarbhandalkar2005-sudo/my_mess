@@ -390,59 +390,143 @@ app.get('/payment-history/:id', (req, res) => {
     });
 });
 
+// ============================================================
+// PAYMENT ALLOCATION (FIFO — oldest unpaid month gets cleared first)
+// ============================================================
+// A payment is NOT tied to the month it was paid in. Instead every
+// payment a customer has ever made goes into one pool, and that pool
+// is walked across their bills oldest-month-first until it runs out.
+// This is recalculated fresh on every request (nothing is stored),
+// so editing or deleting a tiffin entry later automatically keeps
+// every month's paid/pending numbers correct — no stale data possible.
+function buildMonthlyLedger(monthlyRows, totalPaidPool) {
+    let remaining = Number(totalPaidPool) || 0;
+    const ledger = new Map();
+
+    monthlyRows.forEach(row => {
+        const totalTiffin = Number(row.fastTiffin || 0) + Number(row.regularTiffin || 0);
+        const totalAmount =
+            (row.regularTiffin || 0) * TIFFIN_PRICE  +
+            (row.fastTiffin    || 0) * FAST_PRICE    +
+            (row.totalRoti     || 0) * ROTI_PRICE    +
+            (row.totalBhakari  || 0) * BHAKARI_PRICE;
+
+        const paid    = Math.min(remaining, totalAmount);
+        const pending = totalAmount - paid;
+        remaining -= paid;
+
+        ledger.set(`${row.y}-${row.m}`, {
+            totalTiffin,
+            extraRoti:    row.totalRoti    || 0,
+            extraBhakari: row.totalBhakari || 0,
+            totalAmount,
+            paid,
+            pending
+        });
+    });
+
+    return ledger;
+}
+
 // FINAL BILL
 app.get('/final-bill/:id', (req, res) => {
     const id = req.params.id;
     const { month, year } = req.query;
     const hasFilter = month && year;
 
-    const tiffinSql = `SELECT
-                              SUM(CASE WHEN type = 'Fast' THEN quantity ELSE 0 END) AS fastTiffin,
-                              SUM(CASE WHEN type != 'Fast' THEN quantity ELSE 0 END) AS regularTiffin,
-                              SUM(extra_roti) AS totalRoti,
-                              SUM(extra_bhakari) AS totalBhakari
-                       FROM tiffin WHERE customer_id = ?
-                       ${hasFilter ? 'AND MONTH(date) = ? AND YEAR(date) = ?' : ''}`;
+    // No month/year given -> simple all-time totals. Unchanged: with no
+    // month bucket to allocate into, "total paid" is just every rupee
+    // the customer has ever paid, and pending can go negative (credit).
+    if (!hasFilter) {
+        const tiffinSql = `SELECT
+                                  SUM(CASE WHEN type = 'Fast' THEN quantity ELSE 0 END) AS fastTiffin,
+                                  SUM(CASE WHEN type != 'Fast' THEN quantity ELSE 0 END) AS regularTiffin,
+                                  SUM(extra_roti) AS totalRoti,
+                                  SUM(extra_bhakari) AS totalBhakari
+                           FROM tiffin WHERE customer_id = ?`;
 
-    const paymentSql = `SELECT SUM(amount_paid) AS totalPaid
-                        FROM payments WHERE customer_id = ?
-                        ${hasFilter ? 'AND MONTH(date) = ? AND YEAR(date) = ?' : ''}`;
+        const paymentSql = `SELECT SUM(amount_paid) AS totalPaid FROM payments WHERE customer_id = ?`;
 
-    const tiffinParams  = hasFilter ? [id, month, year] : [id];
-    const paymentParams = hasFilter ? [id, month, year] : [id];
+        db.query(tiffinSql, [id], (err, tiffinResult) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ message: "Error calculating bill" });
+            }
 
-    db.query(tiffinSql, tiffinParams, (err, tiffinResult) => {
+            db.query(paymentSql, [id], (err, paymentResult) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({ message: "Error calculating payment" });
+                }
+
+                const t = tiffinResult[0] || {};
+                const totalTiffin = Number(t.fastTiffin || 0) + Number(t.regularTiffin || 0);
+
+                const totalAmount =
+                    (t.regularTiffin || 0) * TIFFIN_PRICE  +
+                    (t.fastTiffin    || 0) * FAST_PRICE    +
+                    (t.totalRoti     || 0) * ROTI_PRICE    +
+                    (t.totalBhakari  || 0) * BHAKARI_PRICE;
+
+                const totalPaid = paymentResult[0].totalPaid || 0;
+                const pending   = totalAmount - totalPaid;
+
+                res.status(200).json({
+                    totalTiffin,
+                    extraRoti:    t.totalRoti    || 0,
+                    extraBhakari: t.totalBhakari || 0,
+                    totalAmount,
+                    totalPaid,
+                    pending,
+                    status: pending <= 0 ? "Paid ✅" : "Pending ❌"
+                });
+            });
+        });
+        return;
+    }
+
+    // Month/year given -> FIFO allocation. We pull EVERY month this
+    // customer has bills for (not just the requested one) plus their
+    // all-time payment total, walk oldest-to-newest, then read off
+    // just the requested month's paid/pending from that walk.
+    const monthlyTiffinSql = `SELECT YEAR(date) AS y, MONTH(date) AS m,
+                                      SUM(CASE WHEN type = 'Fast' THEN quantity ELSE 0 END) AS fastTiffin,
+                                      SUM(CASE WHEN type != 'Fast' THEN quantity ELSE 0 END) AS regularTiffin,
+                                      SUM(extra_roti) AS totalRoti,
+                                      SUM(extra_bhakari) AS totalBhakari
+                               FROM tiffin
+                               WHERE customer_id = ?
+                               GROUP BY YEAR(date), MONTH(date)
+                               ORDER BY y ASC, m ASC`;
+
+    const totalPaidSql = `SELECT SUM(amount_paid) AS totalPaid FROM payments WHERE customer_id = ?`;
+
+    db.query(monthlyTiffinSql, [id], (err, monthlyRows) => {
         if (err) {
             console.error(err);
             return res.status(500).json({ message: "Error calculating bill" });
         }
 
-        db.query(paymentSql, paymentParams, (err, paymentResult) => {
+        db.query(totalPaidSql, [id], (err, paymentResult) => {
             if (err) {
                 console.error(err);
                 return res.status(500).json({ message: "Error calculating payment" });
             }
 
-            const t = tiffinResult[0] || {};
-            const totalTiffin = Number(t.fastTiffin || 0) + Number(t.regularTiffin || 0);
-
-            const totalAmount =
-                (t.regularTiffin || 0) * TIFFIN_PRICE  +
-                (t.fastTiffin    || 0) * FAST_PRICE    +
-                (t.totalRoti     || 0) * ROTI_PRICE    +
-                (t.totalBhakari  || 0) * BHAKARI_PRICE;
-
-            const totalPaid = paymentResult[0].totalPaid || 0;
-            const pending   = totalAmount - totalPaid;
+            const totalPaidPool = paymentResult[0].totalPaid || 0;
+            const ledger = buildMonthlyLedger(monthlyRows, totalPaidPool);
+            const entry  = ledger.get(`${Number(year)}-${Number(month)}`) || {
+                totalTiffin: 0, extraRoti: 0, extraBhakari: 0, totalAmount: 0, paid: 0, pending: 0
+            };
 
             res.status(200).json({
-                totalTiffin:  totalTiffin,
-                extraRoti:    t.totalRoti    || 0,
-                extraBhakari: t.totalBhakari || 0,
-                totalAmount,
-                totalPaid,
-                pending,
-                status: pending <= 0 ? "Paid ✅" : "Pending ❌"
+                totalTiffin:  entry.totalTiffin,
+                extraRoti:    entry.extraRoti,
+                extraBhakari: entry.extraBhakari,
+                totalAmount:  entry.totalAmount,
+                totalPaid:    entry.paid,
+                pending:      entry.pending,
+                status: entry.pending <= 0 ? "Paid ✅" : "Pending ❌"
             });
         });
     });
@@ -455,22 +539,83 @@ app.get('/all-customers-summary', (req, res) => {
 
     const customersSql = `SELECT id, name FROM customers WHERE role = 'customer' ORDER BY id ASC`;
 
-    const tiffinSql = `SELECT customer_id,
-                              SUM(CASE WHEN type = 'Fast' THEN quantity ELSE 0 END) AS fastTiffin,
-                              SUM(CASE WHEN type != 'Fast' THEN quantity ELSE 0 END) AS regularTiffin,
-                              SUM(extra_roti) AS totalRoti,
-                              SUM(extra_bhakari) AS totalBhakari
-                       FROM tiffin
-                       ${hasFilter ? 'WHERE MONTH(date) = ? AND YEAR(date) = ?' : ''}
-                       GROUP BY customer_id`;
+    // No month/year given -> simple all-time totals per customer (unchanged)
+    if (!hasFilter) {
+        const tiffinSql = `SELECT customer_id,
+                                  SUM(CASE WHEN type = 'Fast' THEN quantity ELSE 0 END) AS fastTiffin,
+                                  SUM(CASE WHEN type != 'Fast' THEN quantity ELSE 0 END) AS regularTiffin,
+                                  SUM(extra_roti) AS totalRoti,
+                                  SUM(extra_bhakari) AS totalBhakari
+                           FROM tiffin
+                           GROUP BY customer_id`;
 
-    const paymentSql = `SELECT customer_id, SUM(amount_paid) AS totalPaid
-                        FROM payments
-                        ${hasFilter ? 'WHERE MONTH(date) = ? AND YEAR(date) = ?' : ''}
-                        GROUP BY customer_id`;
+        const paymentSql = `SELECT customer_id, SUM(amount_paid) AS totalPaid
+                            FROM payments
+                            GROUP BY customer_id`;
 
-    const tiffinParams  = hasFilter ? [month, year] : [];
-    const paymentParams = hasFilter ? [month, year] : [];
+        db.query(customersSql, (err, customers) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ message: "Error fetching customers" });
+            }
+
+            db.query(tiffinSql, (err, tiffinRows) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({ message: "Error fetching tiffin data" });
+                }
+
+                db.query(paymentSql, (err, paymentRows) => {
+                    if (err) {
+                        console.error(err);
+                        return res.status(500).json({ message: "Error fetching payment data" });
+                    }
+
+                    const tiffinMap  = {};
+                    tiffinRows.forEach(row => { tiffinMap[row.customer_id] = row; });
+
+                    const paymentMap = {};
+                    paymentRows.forEach(row => { paymentMap[row.customer_id] = row.totalPaid || 0; });
+
+                    const summary = customers.map(c => {
+                        const t = tiffinMap[c.id] || {};
+                        const totalTiffin = Number(t.fastTiffin || 0) + Number(t.regularTiffin || 0);
+
+                        const totalAmount =
+                            (t.regularTiffin || 0) * TIFFIN_PRICE  +
+                            (t.fastTiffin    || 0) * FAST_PRICE    +
+                            (t.totalRoti     || 0) * ROTI_PRICE    +
+                            (t.totalBhakari  || 0) * BHAKARI_PRICE;
+
+                        const totalPaid = paymentMap[c.id] || 0;
+                        const pending   = totalAmount - totalPaid;
+
+                        return { id: c.id, name: c.name, totalTiffin, totalAmount, totalPaid, pending };
+                    });
+
+                    res.status(200).json(summary);
+                });
+            });
+        });
+        return;
+    }
+
+    // Month/year given -> FIFO allocation per customer. Pull EVERY
+    // month each customer has bills for plus their all-time payment
+    // total, walk oldest-to-newest per customer, then read off the
+    // requested month's paid/pending.
+    const monthlyTiffinSql = `SELECT customer_id, YEAR(date) AS y, MONTH(date) AS m,
+                                      SUM(CASE WHEN type = 'Fast' THEN quantity ELSE 0 END) AS fastTiffin,
+                                      SUM(CASE WHEN type != 'Fast' THEN quantity ELSE 0 END) AS regularTiffin,
+                                      SUM(extra_roti) AS totalRoti,
+                                      SUM(extra_bhakari) AS totalBhakari
+                               FROM tiffin
+                               GROUP BY customer_id, YEAR(date), MONTH(date)
+                               ORDER BY customer_id ASC, y ASC, m ASC`;
+
+    const totalPaidSql = `SELECT customer_id, SUM(amount_paid) AS totalPaid
+                          FROM payments
+                          GROUP BY customer_id`;
 
     db.query(customersSql, (err, customers) => {
         if (err) {
@@ -478,44 +623,42 @@ app.get('/all-customers-summary', (req, res) => {
             return res.status(500).json({ message: "Error fetching customers" });
         }
 
-        db.query(tiffinSql, tiffinParams, (err, tiffinRows) => {
+        db.query(monthlyTiffinSql, (err, monthlyRows) => {
             if (err) {
                 console.error(err);
                 return res.status(500).json({ message: "Error fetching tiffin data" });
             }
 
-            db.query(paymentSql, paymentParams, (err, paymentRows) => {
+            db.query(totalPaidSql, (err, paymentRows) => {
                 if (err) {
                     console.error(err);
                     return res.status(500).json({ message: "Error fetching payment data" });
                 }
 
-                const tiffinMap  = {};
-                tiffinRows.forEach(row => { tiffinMap[row.customer_id] = row; });
+                const rowsByCustomer = {};
+                monthlyRows.forEach(row => {
+                    if (!rowsByCustomer[row.customer_id]) rowsByCustomer[row.customer_id] = [];
+                    rowsByCustomer[row.customer_id].push(row);
+                });
 
-                const paymentMap = {};
-                paymentRows.forEach(row => { paymentMap[row.customer_id] = row.totalPaid || 0; });
+                const paidPoolMap = {};
+                paymentRows.forEach(row => { paidPoolMap[row.customer_id] = row.totalPaid || 0; });
+
+                const key = `${Number(year)}-${Number(month)}`;
 
                 const summary = customers.map(c => {
-                    const t = tiffinMap[c.id] || {};
-                    const totalTiffin = Number(t.fastTiffin || 0) + Number(t.regularTiffin || 0);
-
-                    const totalAmount =
-                        (t.regularTiffin || 0) * TIFFIN_PRICE  +
-                        (t.fastTiffin    || 0) * FAST_PRICE    +
-                        (t.totalRoti     || 0) * ROTI_PRICE    +
-                        (t.totalBhakari  || 0) * BHAKARI_PRICE;
-
-                    const totalPaid = paymentMap[c.id] || 0;
-                    const pending   = totalAmount - totalPaid;
+                    const ledger = buildMonthlyLedger(rowsByCustomer[c.id] || [], paidPoolMap[c.id] || 0);
+                    const entry  = ledger.get(key) || {
+                        totalTiffin: 0, extraRoti: 0, extraBhakari: 0, totalAmount: 0, paid: 0, pending: 0
+                    };
 
                     return {
                         id: c.id,
                         name: c.name,
-                        totalTiffin,
-                        totalAmount,
-                        totalPaid,
-                        pending
+                        totalTiffin: entry.totalTiffin,
+                        totalAmount: entry.totalAmount,
+                        totalPaid:   entry.paid,
+                        pending:     entry.pending
                     };
                 });
 
