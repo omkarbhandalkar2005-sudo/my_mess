@@ -1121,17 +1121,23 @@ tbody tr:hover { background: rgba(31, 206, 184, 0.05); }
     cursor: pointer;
 }
 
+.menu-nonveg-toggle-label {
+    font-size: var(--text-sm) !important;
+    font-weight: 600 !important;
+}
+
 .menu-nonveg-toggle-label input[type="checkbox"] {
     appearance: none;
     -webkit-appearance: none;
-    width: 20px;
-    height: 20px;
+    width: 15px;
+    height: 15px;
     flex-shrink: 0;
     border: 1.5px solid var(--border-strong);
-    border-radius: 6px;
+    border-radius: 4px;
     background: var(--bg);
     cursor: pointer;
     position: relative;
+    top: 1px;
     transition: background 0.15s var(--ease), border-color 0.15s var(--ease);
 }
 
@@ -1143,13 +1149,13 @@ tbody tr:hover { background: rgba(31, 206, 184, 0.05); }
 .menu-nonveg-toggle-label input[type="checkbox"]:checked::after {
     content: "";
     position: absolute;
-    left: 6px;
-    top: 2px;
-    width: 5px;
-    height: 10px;
+    left: 50%;
+    top: 44%;
+    width: 3.5px;
+    height: 7px;
     border: solid #ffffff;
-    border-width: 0 2px 2px 0;
-    transform: rotate(45deg);
+    border-width: 0 1.5px 1.5px 0;
+    transform: translate(-50%, -50%) rotate(45deg);
 }
 
 .menu-simple-block textarea {
