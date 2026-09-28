@@ -426,6 +426,7 @@ input::placeholder, textarea::placeholder { color: var(--text-muted); }
     padding: 0 !important;
     box-shadow: none !important;
     -moz-appearance: textfield;
+    appearance: textfield;
 }
 
 .stepper-value::-webkit-outer-spin-button,
