@@ -26,7 +26,7 @@ const TIFFIN_PRICE  = 70;
 const FAST_PRICE    = 50;
 const CHAPATI_PRICE       = 10;   // chapati taken WITH a tiffin
 const CHAPATI_ALONE_PRICE = 15;   // chapati taken WITHOUT a tiffin (quantity = 0 that day)
-const BHAKARI_PRICE = 10;
+const BHAKARI_PRICE = 20;
 
 const otpStore      = {};
 const resetOtpStore = {};
