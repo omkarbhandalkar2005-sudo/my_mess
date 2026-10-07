@@ -935,6 +935,9 @@ function formatTime12(t) {
 }
 
 // ── Today's Meals (Customer) ──
+// Default serving time (24h "HH:MM") used when admin hasn't set one for that meal.
+const DEFAULT_MEAL_TIMES = { lunch: "13:00" };
+
 // Purely cosmetic: swaps ',' separators for a cleaner middle-dot separator
 // when displaying menu text. Doesn't touch the underlying stored text.
 function formatMenuText(text) {
@@ -995,10 +998,12 @@ function loadTodaysMeals() {
                     </div>`
                 : `<p class="meal-menu">${formatMenuText(info.veg_menu_text) || "—"}</p>`;
 
+            const mealTime = info.meal_time || DEFAULT_MEAL_TIMES[m.key] || "";
+
             return `<div class="meal-card">
                 <div class="meal-card-head">
                     <h3>${m.label}</h3>
-                    ${info.meal_time ? `<span class="meal-time">${formatTime12(info.meal_time)}</span>` : ""}
+                    ${mealTime ? `<span class="meal-time">${formatTime12(mealTime)}</span>` : ""}
                 </div>
                 ${menuHtml}
                 ${actionHtml}
@@ -1163,7 +1168,7 @@ function renderMenuDay(day) {
     const dinner = menuDataCache[`${day}_Dinner`] || {};
 
     document.getElementById("simple_lunch_text").value  = lunch.veg_menu_text  || "";
-    document.getElementById("simple_lunch_time").value  = lunch.meal_time  || "";
+    document.getElementById("simple_lunch_time").value  = lunch.meal_time  || DEFAULT_MEAL_TIMES.lunch;
     document.getElementById("simple_lunch_nonveg_toggle").checked = !!lunch.nonveg_menu_text;
     document.getElementById("simple_lunch_nonveg_text").value = lunch.nonveg_menu_text || "";
     document.getElementById("simple_lunch_nonveg_group").hidden = !lunch.nonveg_menu_text;
