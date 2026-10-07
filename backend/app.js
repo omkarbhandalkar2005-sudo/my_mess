@@ -26,7 +26,8 @@ const TIFFIN_PRICE  = 70;
 const FAST_PRICE    = 50;
 const CHAPATI_PRICE       = 10;   // chapati taken WITH a tiffin
 const CHAPATI_ALONE_PRICE = 15;   // chapati taken WITHOUT a tiffin (quantity = 0 that day)
-const BHAKARI_PRICE = 20;
+const BHAKARI_PRICE       = 10;   // bhakari taken WITH a tiffin
+const BHAKARI_ALONE_PRICE = 20;   // bhakari taken WITHOUT a tiffin (quantity = 0 that day)
 
 const otpStore      = {};
 const resetOtpStore = {};
@@ -567,7 +568,8 @@ function buildMonthlyLedger(monthlyRows, totalPaidPool) {
             (row.fastTiffin        || 0) * FAST_PRICE          +
             (row.chapatiWithTiffin || 0) * CHAPATI_PRICE       +
             (row.chapatiAlone      || 0) * CHAPATI_ALONE_PRICE +
-            (row.totalBhakari      || 0) * BHAKARI_PRICE;
+            (row.bhakariWithTiffin || 0) * BHAKARI_PRICE       +
+            (row.bhakariAlone      || 0) * BHAKARI_ALONE_PRICE;
 
         const paid    = Math.min(remaining, totalAmount);
         const pending = totalAmount - paid;
@@ -576,7 +578,7 @@ function buildMonthlyLedger(monthlyRows, totalPaidPool) {
         ledger.set(`${row.y}-${row.m}`, {
             totalTiffin,
             extraChapati:    totalChapati,
-            extraBhakari: row.totalBhakari || 0,
+            extraBhakari: Number(row.bhakariWithTiffin || 0) + Number(row.bhakariAlone || 0),
             totalAmount,
             paid,
             pending
@@ -601,7 +603,8 @@ app.get('/final-bill/:id', (req, res) => {
                                   SUM(CASE WHEN type != 'Fast' THEN quantity ELSE 0 END) AS regularTiffin,
                                   SUM(CASE WHEN quantity > 0 THEN extra_roti ELSE 0 END) AS chapatiWithTiffin,
                                   SUM(CASE WHEN quantity = 0 THEN extra_roti ELSE 0 END) AS chapatiAlone,
-                                  SUM(extra_bhakari) AS totalBhakari
+                                  SUM(CASE WHEN quantity > 0 THEN extra_bhakari ELSE 0 END) AS bhakariWithTiffin,
+                                  SUM(CASE WHEN quantity = 0 THEN extra_bhakari ELSE 0 END) AS bhakariAlone
                            FROM tiffin WHERE customer_id = ?`;
 
         const paymentSql = `SELECT SUM(amount_paid) AS totalPaid FROM payments WHERE customer_id = ?`;
@@ -627,7 +630,8 @@ app.get('/final-bill/:id', (req, res) => {
                     (t.fastTiffin        || 0) * FAST_PRICE          +
                     (t.chapatiWithTiffin || 0) * CHAPATI_PRICE       +
                     (t.chapatiAlone      || 0) * CHAPATI_ALONE_PRICE +
-                    (t.totalBhakari      || 0) * BHAKARI_PRICE;
+                    (t.bhakariWithTiffin || 0) * BHAKARI_PRICE       +
+                    (t.bhakariAlone      || 0) * BHAKARI_ALONE_PRICE;
 
                 const totalPaid = paymentResult[0].totalPaid || 0;
                 const pending   = totalAmount - totalPaid;
@@ -635,7 +639,7 @@ app.get('/final-bill/:id', (req, res) => {
                 res.status(200).json({
                     totalTiffin,
                     extraChapati:    totalChapati,
-                    extraBhakari: t.totalBhakari || 0,
+                    extraBhakari: Number(t.bhakariWithTiffin || 0) + Number(t.bhakariAlone || 0),
                     totalAmount,
                     totalPaid,
                     pending,
@@ -655,7 +659,8 @@ app.get('/final-bill/:id', (req, res) => {
                                       SUM(CASE WHEN type != 'Fast' THEN quantity ELSE 0 END) AS regularTiffin,
                                       SUM(CASE WHEN quantity > 0 THEN extra_roti ELSE 0 END) AS chapatiWithTiffin,
                                       SUM(CASE WHEN quantity = 0 THEN extra_roti ELSE 0 END) AS chapatiAlone,
-                                      SUM(extra_bhakari) AS totalBhakari
+                                      SUM(CASE WHEN quantity > 0 THEN extra_bhakari ELSE 0 END) AS bhakariWithTiffin,
+                                      SUM(CASE WHEN quantity = 0 THEN extra_bhakari ELSE 0 END) AS bhakariAlone
                                FROM tiffin
                                WHERE customer_id = ?
                                GROUP BY YEAR(date), MONTH(date)
@@ -708,7 +713,8 @@ app.get('/api/monthly-summary', (req, res) => {
                                   SUM(CASE WHEN type != 'Fast' THEN quantity ELSE 0 END) AS regularTiffin,
                                   SUM(CASE WHEN quantity > 0 THEN extra_roti ELSE 0 END) AS chapatiWithTiffin,
                                   SUM(CASE WHEN quantity = 0 THEN extra_roti ELSE 0 END) AS chapatiAlone,
-                                  SUM(extra_bhakari) AS totalBhakari
+                                  SUM(CASE WHEN quantity > 0 THEN extra_bhakari ELSE 0 END) AS bhakariWithTiffin,
+                                  SUM(CASE WHEN quantity = 0 THEN extra_bhakari ELSE 0 END) AS bhakariAlone
                            FROM tiffin
                            GROUP BY customer_id`;
 
@@ -750,7 +756,8 @@ app.get('/api/monthly-summary', (req, res) => {
                                 (t.fastTiffin        || 0) * FAST_PRICE          +
                                 (t.chapatiWithTiffin || 0) * CHAPATI_PRICE       +
                                 (t.chapatiAlone      || 0) * CHAPATI_ALONE_PRICE +
-                                (t.totalBhakari      || 0) * BHAKARI_PRICE;
+                                (t.bhakariWithTiffin || 0) * BHAKARI_PRICE       +
+                                (t.bhakariAlone      || 0) * BHAKARI_ALONE_PRICE;
 
                             const totalPaid = paymentMap[c.id] || 0;
                             const pending   = totalAmount - totalPaid;
@@ -776,7 +783,8 @@ app.get('/api/monthly-summary', (req, res) => {
                                       SUM(CASE WHEN type != 'Fast' THEN quantity ELSE 0 END) AS regularTiffin,
                                       SUM(CASE WHEN quantity > 0 THEN extra_roti ELSE 0 END) AS chapatiWithTiffin,
                                       SUM(CASE WHEN quantity = 0 THEN extra_roti ELSE 0 END) AS chapatiAlone,
-                                      SUM(extra_bhakari) AS totalBhakari
+                                      SUM(CASE WHEN quantity > 0 THEN extra_bhakari ELSE 0 END) AS bhakariWithTiffin,
+                                      SUM(CASE WHEN quantity = 0 THEN extra_bhakari ELSE 0 END) AS bhakariAlone
                                FROM tiffin
                                GROUP BY customer_id, YEAR(date), MONTH(date)
                                ORDER BY customer_id ASC, y ASC, m ASC`;
