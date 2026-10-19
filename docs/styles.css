@@ -1473,3 +1473,60 @@ body.sidebar-open { overflow: hidden; }
     color: var(--text-muted);
     text-align: center;
 }
+/* ── Booking extras (Extra Chapati / Bhakari on customer meal card) ── */
+.extras-panel {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-3);
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-2);
+}
+
+.extras-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-2);
+}
+
+.extras-title {
+    font-size: var(--text-sm);
+    font-weight: 600;
+    color: var(--text);
+}
+
+.extras-hint {
+    font-size: var(--text-xs);
+    color: var(--text-muted);
+}
+
+.extras-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-3);
+    padding-top: var(--space-2);
+    border-top: 1px solid var(--border);
+}
+
+.extras-name {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--text);
+}
+
+.extras-row .stepper {
+    width: 132px;
+    flex-shrink: 0;
+}
+
+.extras-row .stepper-btn {
+    width: 30px;
+    height: 30px;
+}
+
+.extras-row .stepper-value {
+    font-size: var(--text-base);
+}
