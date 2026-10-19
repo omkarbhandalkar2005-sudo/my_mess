@@ -971,18 +971,22 @@ function loadTodaysMeals() {
             let actionHtml;
 
             // Extra chapati / bhakari steppers (sirf tab dikhao jab booking ho sakti hai)
-            const extrasHtml = `
-                <div class="form-row meal-extras">
-                    <div class="form-group">
-                        <label for="extra_roti_${m.key}">Extra Chapati</label>
+                    const extrasHtml = `
+                <div class="extras-panel">
+                    <div class="extras-head">
+                        <span class="extras-title">Extras</span>
+                        <span class="extras-hint">Optional · ₹10 each</span>
+                    </div>
+                    <div class="extras-row">
+                        <label class="extras-name" for="extra_roti_${m.key}">Chapati</label>
                         <div class="stepper" role="group">
                             <button type="button" class="stepper-btn" aria-label="Decrease extra chapati" onclick="stepValue('extra_roti_${m.key}', -1)">&minus;</button>
                             <input type="number" id="extra_roti_${m.key}" class="stepper-value" value="0" min="0" inputmode="numeric">
                             <button type="button" class="stepper-btn" aria-label="Increase extra chapati" onclick="stepValue('extra_roti_${m.key}', 1)">+</button>
                         </div>
                     </div>
-                    <div class="form-group">
-                        <label for="extra_bhakari_${m.key}">Extra Bhakari</label>
+                    <div class="extras-row">
+                        <label class="extras-name" for="extra_bhakari_${m.key}">Bhakari</label>
                         <div class="stepper" role="group">
                             <button type="button" class="stepper-btn" aria-label="Decrease extra bhakari" onclick="stepValue('extra_bhakari_${m.key}', -1)">&minus;</button>
                             <input type="number" id="extra_bhakari_${m.key}" class="stepper-value" value="0" min="0" inputmode="numeric">
