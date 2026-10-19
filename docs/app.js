@@ -970,6 +970,27 @@ function loadTodaysMeals() {
             const hasMenu   = hasVeg || hasNonVeg;
             let actionHtml;
 
+            // Extra chapati / bhakari steppers (sirf tab dikhao jab booking ho sakti hai)
+            const extrasHtml = `
+                <div class="form-row meal-extras">
+                    <div class="form-group">
+                        <label for="extra_roti_${m.key}">Extra Chapati</label>
+                        <div class="stepper" role="group">
+                            <button type="button" class="stepper-btn" aria-label="Decrease extra chapati" onclick="stepValue('extra_roti_${m.key}', -1)">&minus;</button>
+                            <input type="number" id="extra_roti_${m.key}" class="stepper-value" value="0" min="0" inputmode="numeric">
+                            <button type="button" class="stepper-btn" aria-label="Increase extra chapati" onclick="stepValue('extra_roti_${m.key}', 1)">+</button>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label for="extra_bhakari_${m.key}">Extra Bhakari</label>
+                        <div class="stepper" role="group">
+                            <button type="button" class="stepper-btn" aria-label="Decrease extra bhakari" onclick="stepValue('extra_bhakari_${m.key}', -1)">&minus;</button>
+                            <input type="number" id="extra_bhakari_${m.key}" class="stepper-value" value="0" min="0" inputmode="numeric">
+                            <button type="button" class="stepper-btn" aria-label="Increase extra bhakari" onclick="stepValue('extra_bhakari_${m.key}', 1)">+</button>
+                        </div>
+                    </div>
+                </div>`;
+
             if (!hasMenu) {
                 actionHtml = `<p class="empty" style="padding:0.5rem 0;">Menu not announced yet</p>`;
             } else if (info.status === "approved") {
@@ -979,9 +1000,10 @@ function loadTodaysMeals() {
             } else if (info.status === "rejected") {
                 actionHtml = `
                     <div class="meal-status rejected">❌ Request rejected</div>
+                    ${extrasHtml}
                     <button class="btn btn-primary" onclick="bookMeal('${m.label}')">Request Again</button>`;
             } else {
-                actionHtml = `<button class="btn btn-primary" onclick="bookMeal('${m.label}')">Book Tiffin</button>`;
+                actionHtml = `${extrasHtml}<button class="btn btn-primary" onclick="bookMeal('${m.label}')">Book Tiffin</button>`;
             }
 
             const menuHtml = hasNonVeg
@@ -1023,10 +1045,22 @@ function bookMeal(mealType) {
     const selectedRadio   = document.querySelector(`input[name="foodType_${key}"]:checked`);
     const selectedFoodType = selectedRadio ? selectedRadio.value : "Veg";
 
+    // Extras: input khaali/galat ho toh 0 maano
+    const rotiEl    = document.getElementById(`extra_roti_${key}`);
+    const bhakariEl = document.getElementById(`extra_bhakari_${key}`);
+    const extraRoti    = Math.max(0, parseInt(rotiEl ? rotiEl.value : 0, 10) || 0);
+    const extraBhakari = Math.max(0, parseInt(bhakariEl ? bhakariEl.value : 0, 10) || 0);
+
     fetch(`${API}/bookings`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customer_id: id, meal_type: mealType, selected_food_type: selectedFoodType })
+        body: JSON.stringify({
+            customer_id: id,
+            meal_type: mealType,
+            selected_food_type: selectedFoodType,
+            extra_roti: extraRoti,
+            extra_bhakari: extraBhakari
+        })
     })
     .then(res => res.json())
     .then(data => {
@@ -1102,13 +1136,15 @@ function loadBookings() {
                 <td>${b.name} (#${b.customer_id})</td>
                 <td>${b.meal_type}</td>
                 <td>${b.selected_food_type || "—"}</td>
+                <td>${b.extra_roti || 0}</td>
+                <td>${b.extra_bhakari || 0}</td>
                 <td style="color:${statusColor}; text-transform:capitalize;">${b.status}</td>
                 <td>${actionHtml}</td>
             </tr>`;
         }).join("");
 
         container.innerHTML = `<div class="table-wrap"><table>
-            <thead><tr><th>Customer</th><th>Meal</th><th>Meal Type</th><th>Status</th><th>Action</th></tr></thead>
+            <thead><tr><th>Customer</th><th>Meal</th><th>Meal Type</th><th>Chapati</th><th>Bhakari</th><th>Status</th><th>Action</th></tr></thead>
             <tbody>${rows}</tbody>
         </table></div>`;
     })

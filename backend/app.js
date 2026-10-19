@@ -911,6 +911,10 @@ app.post('/bookings', (req, res) => {
 
     const foodType = selected_food_type || "Veg";
 
+    // Extras: negative ya galat value aaye toh 0 maan lo
+    const extraRoti    = Math.max(0, parseInt(req.body.extra_roti, 10)    || 0);
+    const extraBhakari = Math.max(0, parseInt(req.body.extra_bhakari, 10) || 0);
+
     if (!["Veg", "Non-Veg"].includes(foodType)) {
         return res.status(400).json({ message: "Invalid food type" });
     }
@@ -935,8 +939,8 @@ app.post('/bookings', (req, res) => {
 
                 // Purani rejected booking thi, use pending pe reset kar do (rebook)
                 db.query(
-                    "UPDATE bookings SET status = 'pending', selected_food_type = ?, created_at = CURRENT_TIMESTAMP WHERE id = ?",
-                    [foodType, existing.id],
+                    "UPDATE bookings SET status = 'pending', selected_food_type = ?, extra_roti = ?, extra_bhakari = ?, created_at = CURRENT_TIMESTAMP WHERE id = ?",
+                    [foodType, extraRoti, extraBhakari, existing.id],
                     (err) => {
                         if (err) {
                             console.error(err);
@@ -949,8 +953,8 @@ app.post('/bookings', (req, res) => {
             }
 
             db.query(
-                "INSERT INTO bookings (customer_id, booking_date, meal_type, status, selected_food_type) VALUES (?, ?, ?, 'pending', ?)",
-                [customer_id, date, meal_type, foodType],
+                "INSERT INTO bookings (customer_id, booking_date, meal_type, status, selected_food_type, extra_roti, extra_bhakari) VALUES (?, ?, ?, 'pending', ?, ?, ?)",
+                [customer_id, date, meal_type, foodType, extraRoti, extraBhakari],
                 (err) => {
                     if (err) {
                         console.error(err);
@@ -967,7 +971,7 @@ app.post('/bookings', (req, res) => {
 app.get('/admin/bookings/today', (req, res) => {
     const { date } = getIST();
 
-    const sql = `SELECT b.id, b.customer_id, c.name, b.meal_type, b.selected_food_type, b.status, b.created_at
+    const sql = `SELECT b.id, b.customer_id, c.name, b.meal_type, b.selected_food_type, b.extra_roti, b.extra_bhakari, b.status, b.created_at
                  FROM bookings b
                  JOIN customers c ON c.id = b.customer_id
                  WHERE b.booking_date = ?
@@ -1010,9 +1014,9 @@ app.post('/admin/bookings/:id/approve', (req, res) => {
 
             // Billing mein bhi add kar do (existing tiffin table use karke)
             const tiffinSql = `INSERT INTO tiffin (customer_id, date, type, quantity, extra_roti, extra_bhakari)
-                               VALUES (?, ?, ?, 1, 0, 0)`;
+                               VALUES (?, ?, ?, 1, ?, ?)`;
 
-            db.query(tiffinSql, [booking.customer_id, booking.booking_date, booking.selected_food_type], (err) => {
+            db.query(tiffinSql, [booking.customer_id, booking.booking_date, booking.selected_food_type, booking.extra_roti, booking.extra_bhakari], (err) => {
                 if (err) {
                     console.error(err);
                     return res.status(500).json({ message: "Booking approved, but billing failed" });
