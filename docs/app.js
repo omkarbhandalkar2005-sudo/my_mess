@@ -1148,7 +1148,7 @@ function loadBookings() {
         }).join("");
 
         container.innerHTML = `<div class="table-wrap"><table>
-            <thead><tr><th>Customer</th><th>Meal</th><th>Meal Type</th><th>Chapati</th><th>Bhakari</th><th>Status</th><th>Action</th></tr></thead>
+            <thead><tr><th>Customer</th><th>Meal Type</th><th>Chapati</th><th>Bhakari</th><th>Status</th><th>Action</th></tr></thead>
             <tbody>${rows}</tbody>
         </table></div>`;
     })
