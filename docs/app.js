@@ -1138,7 +1138,6 @@ function loadBookings() {
 
             return `<tr>
                 <td>${b.name} (#${b.customer_id})</td>
-                <td>${b.meal_type}</td>
                 <td>${b.selected_food_type || "—"}</td>
                 <td>${b.extra_roti || 0}</td>
                 <td>${b.extra_bhakari || 0}</td>
@@ -1148,7 +1147,7 @@ function loadBookings() {
         }).join("");
 
         container.innerHTML = `<div class="table-wrap"><table>
-            <thead><tr><th>Customer</th><th>Meal</th><th>Meal Type</th><th>Chapati</th><th>Bhakari</th><th>Status</th><th>Action</th></tr></thead>
+            <thead><tr><th>Customer</th><th>Meal Type</th><th>Chapati</th><th>Bhakari</th><th>Status</th><th>Action</th></tr></thead>
             <tbody>${rows}</tbody>
         </table></div>`;
     })
