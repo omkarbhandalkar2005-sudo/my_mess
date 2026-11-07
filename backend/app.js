@@ -166,10 +166,10 @@ function pushToAllCustomers(payload) {
 function notifyAdminsNewBooking(customerId, mealType, foodType) {
     if (!pushEnabled) return;
     db.query("SELECT name FROM customers WHERE id = ?", [customerId], (err, rows) => {
-        const name = (!err && rows.length > 0) ? rows[0].name : "Ek customer";
+        const name = (!err && rows.length > 0) ? rows[0].name : "A customer";
         pushToAdmins({
-            title: "🍱 Naya booking request",
-            body:  `${name} ne ${mealType} (${foodType}) book kiya`,
+            title: "🍱 New booking request",
+            body:  `${name} booked ${mealType} (${foodType})`,
             url:   "/home.html"
         });
     });
@@ -1170,8 +1170,8 @@ app.post('/admin/bookings/:id/approve', (req, res) => {
                 }
                 res.status(200).json({ message: "Booking approved and added to bill ✅" });
                 pushToCustomer(booking.customer_id, {
-                    title: "✅ Booking approve ho gayi",
-                    body:  `Aapka ${booking.meal_type} tiffin (${booking.selected_food_type}) approve ho gaya`,
+                    title: "✅ Booking approved",
+                    body:  `Your ${booking.meal_type} tiffin (${booking.selected_food_type}) has been approved`,
                     url:   "/home.html"
                 });
                 return;
@@ -1198,8 +1198,8 @@ app.post('/admin/bookings/:id/reject', (req, res) => {
         db.query("SELECT customer_id, meal_type FROM bookings WHERE id = ?", [req.params.id], (err, rows) => {
             if (err || rows.length === 0) return;
             pushToCustomer(rows[0].customer_id, {
-                title: "❌ Booking reject ho gayi",
-                body:  `Aapki ${rows[0].meal_type} booking reject ho gayi`,
+                title: "❌ Booking rejected",
+                body:  `Your ${rows[0].meal_type} booking was rejected`,
                 url:   "/home.html"
             });
         });
@@ -1246,7 +1246,7 @@ app.put('/admin/menu', (req, res) => {
 
         const menuPreview = String(veg_menu_text).slice(0, 100);
         pushToAllCustomers({
-            title: `🍽️ ${day_of_week} ${meal_type} ka menu update hua`,
+            title: `🍽️ ${day_of_week} ${meal_type} menu updated`,
             body:  menuPreview,
             url:   "/home.html"
         });

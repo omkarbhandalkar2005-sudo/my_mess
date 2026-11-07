@@ -1299,20 +1299,20 @@ function setPushUI(state) {
 
     if (state === "unsupported") {
         btn.hidden = true;
-        help.innerText = "Is browser mein notifications support nahi hain. iPhone par pehle Safari mein Share → Add to Home Screen karo, phir app wahan se kholo.";
+        help.innerText = "Notifications are not supported in this browser. On iPhone, first tap Share → Add to Home Screen in Safari, then open the app from there.";
     } else if (state === "blocked") {
         btn.hidden = true;
-        help.innerText = "Notifications browser mein block hain. Browser/site settings mein jaakar Notifications ko Allow karo, phir page refresh karo.";
+        help.innerText = "Notifications are blocked in your browser. Open the browser or site settings, allow Notifications, then refresh the page.";
     } else if (state === "on") {
         btn.hidden = false;
         btn.className = "btn btn-ghost";
-        btn.innerText = "🔕 Notifications OFF karo";
-        help.innerText = "Notifications ON hain ✅ Is phone par ab updates milenge, chahe app band ho.";
+        btn.innerText = "🔕 Turn notifications OFF";
+        help.innerText = "Notifications are ON ✅ You will get updates on this phone even when the app is closed.";
     } else {
         btn.hidden = false;
         btn.className = "btn btn-primary";
-        btn.innerText = "🔔 Notifications ON karo";
-        help.innerText = "Booking aur menu ke updates seedha phone par pao, chahe app band ho.";
+        btn.innerText = "🔔 Turn notifications ON";
+        help.innerText = "Get booking and menu updates right on your phone, even when the app is closed.";
     }
 }
 
@@ -1354,7 +1354,7 @@ async function saveSubscriptionToServer(sub) {
             subscription: sub.toJSON()
         })
     });
-    if (!res.ok) throw new Error("Server ne subscription save nahi ki");
+    if (!res.ok) throw new Error("Server could not save the subscription");
 }
 
 async function enablePush() {
@@ -1366,13 +1366,13 @@ async function enablePush() {
         const permission = await Notification.requestPermission();
         if (permission !== "granted") {
             setPushUI(permission === "denied" ? "blocked" : "off");
-            showAlert("pushResult", "Permission nahi mili, notifications ON nahi hue.", "error");
+            showAlert("pushResult", "Permission was not granted, so notifications were not turned on.", "error");
             return;
         }
 
         // 2. Server se public key lo
         const keyRes = await fetch(`${API}/push/public-key`);
-        if (!keyRes.ok) throw new Error("Server par push abhi available nahi hai");
+        if (!keyRes.ok) throw new Error("Push is not available on the server right now");
         const { publicKey } = await keyRes.json();
 
         // 3. Browser mein subscribe karo (Push Service se is phone ka address milega)
@@ -1389,11 +1389,11 @@ async function enablePush() {
         await saveSubscriptionToServer(sub);
 
         setPushUI("on");
-        showAlert("pushResult", "Notifications ON ho gaye ✅", "success");
+        showAlert("pushResult", "Notifications turned on ✅", "success");
     } catch (err) {
         console.error("Enable push failed:", err);
         setPushUI("off");
-        showAlert("pushResult", "Notifications ON nahi ho paye: " + err.message, "error");
+        showAlert("pushResult", "Could not turn on notifications: " + err.message, "error");
     }
 }
 
@@ -1416,17 +1416,17 @@ async function disablePush() {
         }
 
         setPushUI("off");
-        showAlert("pushResult", "Notifications OFF kar diye.", "info");
+        showAlert("pushResult", "Notifications turned off.", "info");
     } catch (err) {
         console.error("Disable push failed:", err);
         setPushUI("on");
-        showAlert("pushResult", "Notifications OFF nahi ho paye: " + err.message, "error");
+        showAlert("pushResult", "Could not turn off notifications: " + err.message, "error");
     }
 }
 
 function togglePush() {
     const btn = document.getElementById("pushBtn");
-    if (btn.innerText.includes("OFF karo")) {
+    if (btn.innerText.includes("OFF")) {
         disablePush();
     } else {
         enablePush();
