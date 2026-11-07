@@ -973,7 +973,7 @@ app.post('/push/subscribe', (req, res) => {
     });
 });
 
-// Notifications band karo
+// turn off Notifications
 app.post('/push/unsubscribe', (req, res) => {
     const { endpoint } = req.body;
 
