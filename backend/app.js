@@ -188,6 +188,69 @@ function notifyAdminsOnlinePayment(customerId, amount) {
     });
 }
 
+// ============================================================
+// PENDING BILL REMINDERS
+// cron-job.org tay dates par is route ko call karta hai (header mein secret ke saath)
+// ============================================================
+app.post('/cron/bill-reminders', (req, res) => {
+    const secret   = process.env.CRON_SECRET;
+    const provided = req.headers['x-cron-secret'];
+
+    // Secret match nahi hua toh koi bhi isse chala nahi sakta
+    if (!secret || !provided ||
+        provided.length !== secret.length ||
+        !crypto.timingSafeEqual(Buffer.from(provided), Buffer.from(secret))) {
+        return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    // Har customer ka pending = total tiffin amount - total paid (wahi formula jo /final-bill mein hai)
+    const sql = `
+        SELECT c.id,
+               COALESCE(t.total, 0) - COALESCE(p.paid, 0) AS pending
+        FROM customers c
+        LEFT JOIN (
+            SELECT customer_id,
+                   SUM(
+                       CASE WHEN type = 'Fast' THEN quantity * ? ELSE quantity * ? END +
+                       CASE WHEN quantity > 0 THEN extra_roti * ? ELSE extra_roti * ? END +
+                       CASE WHEN quantity > 0 THEN extra_bhakari * ? ELSE extra_bhakari * ? END
+                   ) AS total
+            FROM tiffin
+            GROUP BY customer_id
+        ) t ON t.customer_id = c.id
+        LEFT JOIN (
+            SELECT customer_id, SUM(amount_paid) AS paid
+            FROM payments
+            GROUP BY customer_id
+        ) p ON p.customer_id = c.id
+        WHERE c.role = 'customer'`;
+
+    const params = [FAST_PRICE, TIFFIN_PRICE, CHAPATI_PRICE, CHAPATI_ALONE_PRICE, BHAKARI_PRICE, BHAKARI_ALONE_PRICE];
+
+    db.query(sql, params, (err, rows) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ message: "Error calculating pending bills" });
+        }
+
+        let withPending = 0;
+        rows.forEach((r) => {
+            const pending = Math.round(Number(r.pending));
+            if (pending >= 1) {
+                withPending++;
+                pushToCustomer(r.id, {
+                    title: "💳 Pending bill reminder",
+                    body:  `You have ₹${pending} pending. Please clear your dues.`,
+                    url:   "/home.html"
+                });
+            }
+        });
+
+        console.log(`⏰ Bill reminders: ${withPending} of ${rows.length} customers have pending dues`);
+        return res.status(200).json({ checked: rows.length, withPending });
+    });
+});
+
 // TEST
 app.get('/', (req, res) => {
     res.status(200).send("The server is up and running 🚀");
