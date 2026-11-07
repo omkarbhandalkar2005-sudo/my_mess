@@ -14,6 +14,25 @@ const razorpay = new Razorpay({
     key_secret: process.env.RAZORPAY_KEY_SECRET
 });
 
+// Web Push setup — VAPID keys Render ke Environment se aati hain
+const webpush = require('web-push');
+let pushEnabled = false;
+try {
+    if (process.env.VAPID_PUBLIC_KEY && process.env.VAPID_PRIVATE_KEY && process.env.VAPID_SUBJECT) {
+        webpush.setVapidDetails(
+            process.env.VAPID_SUBJECT,
+            process.env.VAPID_PUBLIC_KEY,
+            process.env.VAPID_PRIVATE_KEY
+        );
+        pushEnabled = true;
+        console.log("🔔 Web Push configured");
+    } else {
+        console.warn("⚠️ Web Push disabled: VAPID env vars missing");
+    }
+} catch (err) {
+    console.error("⚠️ Web Push disabled: invalid VAPID keys", err.message);
+}
+
 app.use(cors());
 app.use(express.json({
     // Razorpay's webhook signature is computed over the exact raw bytes
@@ -81,6 +100,79 @@ function sendEmail(to, subject, htmlContent, callback) {
     req.on('error', callback);
     req.write(data);
     req.end();
+}
+
+// ============================================================
+// WEB PUSH HELPERS
+// Sab "fire and forget" hain: push fail ho toh bhi booking/menu ka
+// kaam kabhi nahi rukta, bas console mein error print hota hai.
+// ============================================================
+
+// Ek subscription (ek phone/browser) ko push bhejo
+function sendPushToSubscription(sub, payload) {
+    if (!pushEnabled) return;
+
+    const subscription = {
+        endpoint: sub.endpoint,
+        keys: { p256dh: sub.p256dh, auth: sub.auth }
+    };
+
+    webpush.sendNotification(subscription, JSON.stringify(payload)).catch((err) => {
+        // 404/410 = phone ne subscription cancel kar di ya expire ho gayi → DB se hata do
+        if (err.statusCode === 404 || err.statusCode === 410) {
+            db.query("DELETE FROM push_subscriptions WHERE id = ?", [sub.id], (delErr) => {
+                if (delErr) console.error("Push cleanup failed:", delErr.message);
+            });
+        } else {
+            console.error("Push send failed:", err.statusCode || "", err.message);
+        }
+    });
+}
+
+// Ek customer ke saare phones ko
+function pushToCustomer(customerId, payload) {
+    if (!pushEnabled) return;
+    db.query("SELECT * FROM push_subscriptions WHERE customer_id = ?", [customerId], (err, rows) => {
+        if (err) return console.error("Push lookup failed:", err.message);
+        rows.forEach(sub => sendPushToSubscription(sub, payload));
+    });
+}
+
+// Saare admins ko
+function pushToAdmins(payload) {
+    if (!pushEnabled) return;
+    const sql = `SELECT s.* FROM push_subscriptions s
+                 JOIN customers c ON c.id = s.customer_id
+                 WHERE LOWER(TRIM(c.role)) = 'admin'`;
+    db.query(sql, (err, rows) => {
+        if (err) return console.error("Push lookup failed:", err.message);
+        rows.forEach(sub => sendPushToSubscription(sub, payload));
+    });
+}
+
+// Saare customers ko (admin ko nahi)
+function pushToAllCustomers(payload) {
+    if (!pushEnabled) return;
+    const sql = `SELECT s.* FROM push_subscriptions s
+                 JOIN customers c ON c.id = s.customer_id
+                 WHERE LOWER(TRIM(COALESCE(c.role, 'customer'))) <> 'admin'`;
+    db.query(sql, (err, rows) => {
+        if (err) return console.error("Push lookup failed:", err.message);
+        rows.forEach(sub => sendPushToSubscription(sub, payload));
+    });
+}
+
+// Naya booking aaya → admin ko batao (customer ka naam DB se nikalke)
+function notifyAdminsNewBooking(customerId, mealType, foodType) {
+    if (!pushEnabled) return;
+    db.query("SELECT name FROM customers WHERE id = ?", [customerId], (err, rows) => {
+        const name = (!err && rows.length > 0) ? rows[0].name : "Ek customer";
+        pushToAdmins({
+            title: "🍱 Naya booking request",
+            body:  `${name} ne ${mealType} (${foodType}) book kiya`,
+            url:   "/home.html"
+        });
+    });
 }
 
 // TEST
@@ -848,6 +940,57 @@ app.get('/api/monthly-summary', (req, res) => {
 });
 
 // ============================================================
+// WEB PUSH ROUTES
+// ============================================================
+
+// Frontend ko public key chahiye subscribe karne ke liye (public hai, safe hai)
+app.get('/push/public-key', (req, res) => {
+    if (!pushEnabled) {
+        return res.status(503).json({ message: "Push notifications not available" });
+    }
+    res.status(200).json({ publicKey: process.env.VAPID_PUBLIC_KEY });
+});
+
+// Phone ki subscription save karo (same phone dobara aaye toh update ho jayegi)
+app.post('/push/subscribe', (req, res) => {
+    const { customer_id, subscription } = req.body;
+
+    if (!customer_id || !subscription || !subscription.endpoint ||
+        !subscription.keys || !subscription.keys.p256dh || !subscription.keys.auth) {
+        return res.status(400).json({ message: "Invalid subscription" });
+    }
+
+    const sql = `INSERT INTO push_subscriptions (customer_id, endpoint, p256dh, auth)
+                 VALUES (?, ?, ?, ?)
+                 ON DUPLICATE KEY UPDATE customer_id = VALUES(customer_id), p256dh = VALUES(p256dh), auth = VALUES(auth)`;
+
+    db.query(sql, [customer_id, subscription.endpoint, subscription.keys.p256dh, subscription.keys.auth], (err) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ message: "Error saving subscription" });
+        }
+        return res.status(200).json({ message: "Notifications enabled ✅" });
+    });
+});
+
+// Notifications band karo
+app.post('/push/unsubscribe', (req, res) => {
+    const { endpoint } = req.body;
+
+    if (!endpoint) {
+        return res.status(400).json({ message: "Endpoint required" });
+    }
+
+    db.query("DELETE FROM push_subscriptions WHERE endpoint = ?", [endpoint], (err) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ message: "Error removing subscription" });
+        }
+        return res.status(200).json({ message: "Notifications disabled" });
+    });
+});
+
+// ============================================================
 // TODAY'S MEAL BOOKING SYSTEM
 // ============================================================
 
@@ -946,7 +1089,9 @@ app.post('/bookings', (req, res) => {
                             console.error(err);
                             return res.status(500).json({ message: "Error creating booking" });
                         }
-                        return res.status(200).json({ message: "Booking request sent ✅" });
+                        res.status(200).json({ message: "Booking request sent ✅" });
+                        notifyAdminsNewBooking(customer_id, meal_type, foodType);
+                        return;
                     }
                 );
                 return;
@@ -960,7 +1105,9 @@ app.post('/bookings', (req, res) => {
                         console.error(err);
                         return res.status(500).json({ message: "Error creating booking" });
                     }
-                    return res.status(201).json({ message: "Booking request sent ✅" });
+                    res.status(201).json({ message: "Booking request sent ✅" });
+                    notifyAdminsNewBooking(customer_id, meal_type, foodType);
+                    return;
                 }
             );
         }
@@ -1021,7 +1168,13 @@ app.post('/admin/bookings/:id/approve', (req, res) => {
                     console.error(err);
                     return res.status(500).json({ message: "Booking approved, but billing failed" });
                 }
-                return res.status(200).json({ message: "Booking approved and added to bill ✅" });
+                res.status(200).json({ message: "Booking approved and added to bill ✅" });
+                pushToCustomer(booking.customer_id, {
+                    title: "✅ Booking approve ho gayi",
+                    body:  `Aapka ${booking.meal_type} tiffin (${booking.selected_food_type}) approve ho gaya`,
+                    url:   "/home.html"
+                });
+                return;
             });
         });
     });
@@ -1039,7 +1192,17 @@ app.post('/admin/bookings/:id/reject', (req, res) => {
             return res.status(404).json({ message: "Booking not found" });
         }
 
-        return res.status(200).json({ message: "Booking rejected" });
+        res.status(200).json({ message: "Booking rejected" });
+
+        // Customer ko batane ke liye booking ki detail nikalo
+        db.query("SELECT customer_id, meal_type FROM bookings WHERE id = ?", [req.params.id], (err, rows) => {
+            if (err || rows.length === 0) return;
+            pushToCustomer(rows[0].customer_id, {
+                title: "❌ Booking reject ho gayi",
+                body:  `Aapki ${rows[0].meal_type} booking reject ho gayi`,
+                url:   "/home.html"
+            });
+        });
     });
 });
 
@@ -1079,7 +1242,15 @@ app.put('/admin/menu', (req, res) => {
             console.error(err);
             return res.status(500).json({ message: "Error saving menu" });
         }
-        return res.status(200).json({ message: "Menu updated ✅" });
+        res.status(200).json({ message: "Menu updated ✅" });
+
+        const menuPreview = String(veg_menu_text).slice(0, 100);
+        pushToAllCustomers({
+            title: `🍽️ ${day_of_week} ${meal_type} ka menu update hua`,
+            body:  menuPreview,
+            url:   "/home.html"
+        });
+        return;
     });
 });
 
