@@ -175,6 +175,19 @@ function notifyAdminsNewBooking(customerId, mealType, foodType) {
     });
 }
 
+// Customer ne Razorpay se payment ki → admin ko batao
+function notifyAdminsOnlinePayment(customerId, amount) {
+    if (!pushEnabled) return;
+    db.query("SELECT name FROM customers WHERE id = ?", [customerId], (err, rows) => {
+        const name = (!err && rows.length > 0) ? rows[0].name : "A customer";
+        pushToAdmins({
+            title: "💰 Payment received",
+            body:  `${name} paid ₹${amount}`,
+            url:   "/home.html"
+        });
+    });
+}
+
 // TEST
 app.get('/', (req, res) => {
     res.status(200).send("The server is up and running 🚀");
@@ -572,7 +585,9 @@ app.post('/razorpay-webhook', (req, res) => {
             }
 
             console.log(`✅ Razorpay payment auto-recorded: customer ${customerId}, ₹${amountPaid}`);
-            return res.status(200).json({ status: "recorded" });
+            res.status(200).json({ status: "recorded" });
+            notifyAdminsOnlinePayment(customerId, amountPaid);
+            return;
         });
     });
 });
