@@ -1297,6 +1297,10 @@ function setPushUI(state) {
 
     btn.disabled = false;
 
+    // Hide the whole card once notifications are ON; show it in every other state
+    const section = document.getElementById("pushSection");
+    if (section) section.style.display = (state === "on") ? "none" : "";
+
     if (state === "unsupported") {
         btn.hidden = true;
         help.innerText = "Notifications are not supported in this browser. On iPhone, first tap Share → Add to Home Screen in Safari, then open the app from there.";
