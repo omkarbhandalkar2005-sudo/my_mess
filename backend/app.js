@@ -1237,21 +1237,35 @@ app.put('/admin/menu', (req, res) => {
                  VALUES (?, ?, ?, ?, ?)
                  ON DUPLICATE KEY UPDATE veg_menu_text = VALUES(veg_menu_text), nonveg_menu_text = VALUES(nonveg_menu_text), meal_time = VALUES(meal_time)`;
 
-    db.query(sql, [day_of_week, meal_type, veg_menu_text || '', nonveg_menu_text || null, meal_time || null], (err) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ message: "Error saving menu" });
-        }
-        res.status(200).json({ message: "Menu updated ✅" });
+    // Look at the old menu first, so the push only goes out on a real change
+    db.query(
+        "SELECT veg_menu_text, nonveg_menu_text FROM daily_menus WHERE day_of_week = ? AND meal_type = ?",
+        [day_of_week, meal_type],
+        (selErr, oldRows) => {
+            const norm = (v) => (v || '').toString().trim();
+            const menuChanged = Boolean(selErr) || oldRows.length === 0 ||
+                norm(oldRows[0].veg_menu_text)    !== norm(veg_menu_text) ||
+                norm(oldRows[0].nonveg_menu_text) !== norm(nonveg_menu_text);
 
-        const menuPreview = String(veg_menu_text).slice(0, 100);
-        pushToAllCustomers({
-            title: `🍽️ ${day_of_week} ${meal_type} menu updated`,
-            body:  menuPreview,
-            url:   "/home.html"
-        });
-        return;
-    });
+            db.query(sql, [day_of_week, meal_type, veg_menu_text || '', nonveg_menu_text || null, meal_time || null], (err) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({ message: "Error saving menu" });
+                }
+                res.status(200).json({ message: "Menu updated ✅" });
+
+                if (menuChanged) {
+                    const menuPreview = String(veg_menu_text).slice(0, 100);
+                    pushToAllCustomers({
+                        title: `🍽️ ${day_of_week} ${meal_type} menu updated`,
+                        body:  menuPreview,
+                        url:   "/home.html"
+                    });
+                }
+                return;
+            });
+        }
+    );
 });
 
 // SERVER
