@@ -107,6 +107,21 @@
 
     <div class="grid">
 
+        <!-- Push Notifications (Admin + Customer) -->
+        <section class="card grid-full" id="pushSection" aria-labelledby="pushHeading">
+            <div class="card-header">
+                <div class="card-icon amber" aria-hidden="true">
+                    <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"/><path d="M13.73 21a2 2 0 0 1-3.46 0"/>
+                    </svg>
+                </div>
+                <h2 id="pushHeading">Notifications</h2>
+            </div>
+            <p id="pushHelp" style="margin: 0 0 0.75rem; color: var(--text-muted);">&nbsp;</p>
+            <button type="button" class="btn btn-primary" id="pushBtn" onclick="togglePush()">🔔 Notifications ON karo</button>
+            <div id="pushResult" aria-live="polite" style="margin-top: 0.75rem;"></div>
+        </section>
+
         <!-- Today's Booking Requests (Admin) -->
         <section class="card grid-full admin-only" id="bookingsSection" aria-labelledby="bookingsHeading">
             <div class="card-header month-filter-header">
@@ -280,10 +295,11 @@
 </main>
 </div>
 
-<script src="app.js?v=16"></script>
+<script src="app.js?v=17"></script>
 <script>
     function initHome() {
         initCommon();
+        initPush();
 
         if (isAdmin()) {
             document.getElementById("pageSubtitle").innerText =

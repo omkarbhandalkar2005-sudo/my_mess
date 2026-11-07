@@ -1270,3 +1270,165 @@ function saveMenuDay() {
         btn.disabled = false;
     });
 }
+
+// ============================================================
+// WEB PUSH NOTIFICATIONS (service worker: sw.js)
+// ============================================================
+
+// Server ki public key (base64url text) ko browser ke format (bytes) mein badalta hai
+function urlBase64ToUint8Array(base64String) {
+    const padding = "=".repeat((4 - (base64String.length % 4)) % 4);
+    const base64  = (base64String + padding).replace(/-/g, "+").replace(/_/g, "/");
+    const raw     = atob(base64);
+    const output  = new Uint8Array(raw.length);
+    for (let i = 0; i < raw.length; i++) output[i] = raw.charCodeAt(i);
+    return output;
+}
+
+function pushSupported() {
+    return "serviceWorker" in navigator && "PushManager" in window && "Notification" in window;
+}
+
+// Button ka text/style current state ke hisaab se set karo
+function setPushUI(state) {
+    const btn  = document.getElementById("pushBtn");
+    const help = document.getElementById("pushHelp");
+    if (!btn || !help) return;
+
+    btn.disabled = false;
+
+    if (state === "unsupported") {
+        btn.hidden = true;
+        help.innerText = "Is browser mein notifications support nahi hain. iPhone par pehle Safari mein Share → Add to Home Screen karo, phir app wahan se kholo.";
+    } else if (state === "blocked") {
+        btn.hidden = true;
+        help.innerText = "Notifications browser mein block hain. Browser/site settings mein jaakar Notifications ko Allow karo, phir page refresh karo.";
+    } else if (state === "on") {
+        btn.hidden = false;
+        btn.className = "btn btn-ghost";
+        btn.innerText = "🔕 Notifications OFF karo";
+        help.innerText = "Notifications ON hain ✅ Is phone par ab updates milenge, chahe app band ho.";
+    } else {
+        btn.hidden = false;
+        btn.className = "btn btn-primary";
+        btn.innerText = "🔔 Notifications ON karo";
+        help.innerText = "Booking aur menu ke updates seedha phone par pao, chahe app band ho.";
+    }
+}
+
+// Page load par: service worker register karo aur button ki state set karo
+async function initPush() {
+    if (!document.getElementById("pushBtn")) return;
+
+    if (!pushSupported()) {
+        setPushUI("unsupported");
+        return;
+    }
+
+    try {
+        await navigator.serviceWorker.register("/sw.js");
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+
+        if (Notification.permission === "denied") {
+            setPushUI("blocked");
+        } else if (sub && Notification.permission === "granted") {
+            setPushUI("on");
+            // Is phone par koi aur user login karke gaya ho toh subscription ab current user ke naam ho jayegi
+            saveSubscriptionToServer(sub).catch(() => {});
+        } else {
+            setPushUI("off");
+        }
+    } catch (err) {
+        console.error("Push init failed:", err);
+        setPushUI("off");
+    }
+}
+
+async function saveSubscriptionToServer(sub) {
+    const res = await fetch(`${API}/push/subscribe`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            customer_id:  localStorage.getItem("customer_id"),
+            subscription: sub.toJSON()
+        })
+    });
+    if (!res.ok) throw new Error("Server ne subscription save nahi ki");
+}
+
+async function enablePush() {
+    const btn = document.getElementById("pushBtn");
+    btn.disabled = true;
+
+    try {
+        // 1. Browser se permission maango (sirf user ke click par hi allowed hai)
+        const permission = await Notification.requestPermission();
+        if (permission !== "granted") {
+            setPushUI(permission === "denied" ? "blocked" : "off");
+            showAlert("pushResult", "Permission nahi mili, notifications ON nahi hue.", "error");
+            return;
+        }
+
+        // 2. Server se public key lo
+        const keyRes = await fetch(`${API}/push/public-key`);
+        if (!keyRes.ok) throw new Error("Server par push abhi available nahi hai");
+        const { publicKey } = await keyRes.json();
+
+        // 3. Browser mein subscribe karo (Push Service se is phone ka address milega)
+        const reg = await navigator.serviceWorker.ready;
+        let sub = await reg.pushManager.getSubscription();
+        if (!sub) {
+            sub = await reg.pushManager.subscribe({
+                userVisibleOnly: true,
+                applicationServerKey: urlBase64ToUint8Array(publicKey)
+            });
+        }
+
+        // 4. Server ko batao ki yeh phone kis customer ka hai
+        await saveSubscriptionToServer(sub);
+
+        setPushUI("on");
+        showAlert("pushResult", "Notifications ON ho gaye ✅", "success");
+    } catch (err) {
+        console.error("Enable push failed:", err);
+        setPushUI("off");
+        showAlert("pushResult", "Notifications ON nahi ho paye: " + err.message, "error");
+    }
+}
+
+async function disablePush() {
+    const btn = document.getElementById("pushBtn");
+    btn.disabled = true;
+
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        const sub = await reg.pushManager.getSubscription();
+
+        if (sub) {
+            const endpoint = sub.endpoint;
+            await sub.unsubscribe();
+            await fetch(`${API}/push/unsubscribe`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ endpoint })
+            });
+        }
+
+        setPushUI("off");
+        showAlert("pushResult", "Notifications OFF kar diye.", "info");
+    } catch (err) {
+        console.error("Disable push failed:", err);
+        setPushUI("on");
+        showAlert("pushResult", "Notifications OFF nahi ho paye: " + err.message, "error");
+    }
+}
+
+function togglePush() {
+    const btn = document.getElementById("pushBtn");
+    if (btn.innerText.includes("OFF karo")) {
+        disablePush();
+    } else {
+        enablePush();
+    }
+}
