@@ -192,6 +192,9 @@ function notifyAdminsOnlinePayment(customerId, amount) {
 // PENDING BILL REMINDERS
 // cron-job.org tay dates par is route ko call karta hai (header mein secret ke saath)
 // ============================================================
+const MONTH_NAMES = ["January", "February", "March", "April", "May", "June",
+                     "July", "August", "September", "October", "November", "December"];
+
 app.post('/cron/bill-reminders', (req, res) => {
     const secret   = process.env.CRON_SECRET;
     const provided = req.headers['x-cron-secret'];
@@ -203,51 +206,76 @@ app.post('/cron/bill-reminders', (req, res) => {
         return res.status(401).json({ message: "Unauthorized" });
     }
 
-    // Har customer ka pending = total tiffin amount - total paid (wahi formula jo /final-bill mein hai)
-    const sql = `
-        SELECT c.id,
-               COALESCE(t.total, 0) - COALESCE(p.paid, 0) AS pending
-        FROM customers c
-        LEFT JOIN (
-            SELECT customer_id,
-                   SUM(
-                       CASE WHEN type = 'Fast' THEN quantity * ? ELSE quantity * ? END +
-                       CASE WHEN quantity > 0 THEN extra_roti * ? ELSE extra_roti * ? END +
-                       CASE WHEN quantity > 0 THEN extra_bhakari * ? ELSE extra_bhakari * ? END
-                   ) AS total
-            FROM tiffin
-            GROUP BY customer_id
-        ) t ON t.customer_id = c.id
-        LEFT JOIN (
-            SELECT customer_id, SUM(amount_paid) AS paid
-            FROM payments
-            GROUP BY customer_id
-        ) p ON p.customer_id = c.id
-        WHERE c.role = 'customer'`;
+    // Reminder sirf PICHLE mahine ke bill ka jayega (IST ke hisaab se)
+    const nowIST    = new Date(Date.now() + 5.5 * 60 * 60 * 1000);
+    let prevMonth   = nowIST.getUTCMonth();          // current month (0-11) = pichle mahine ka number (1-12)
+    let prevYear    = nowIST.getUTCFullYear();
+    if (prevMonth === 0) { prevMonth = 12; prevYear -= 1; }
+    const monthName = MONTH_NAMES[prevMonth - 1];
 
-    const params = [FAST_PRICE, TIFFIN_PRICE, CHAPATI_PRICE, CHAPATI_ALONE_PRICE, BHAKARI_PRICE, BHAKARI_ALONE_PRICE];
+    const customersSql = `SELECT id FROM customers WHERE role = 'customer'`;
 
-    db.query(sql, params, (err, rows) => {
+    // Har customer ke har mahine ka bill (Bill Summary jaisa hi)
+    const monthlySql = `SELECT customer_id, YEAR(date) AS y, MONTH(date) AS m,
+                               SUM(CASE WHEN type = 'Fast' THEN quantity ELSE 0 END) AS fastTiffin,
+                               SUM(CASE WHEN type != 'Fast' THEN quantity ELSE 0 END) AS regularTiffin,
+                               SUM(CASE WHEN quantity > 0 THEN extra_roti ELSE 0 END) AS chapatiWithTiffin,
+                               SUM(CASE WHEN quantity = 0 THEN extra_roti ELSE 0 END) AS chapatiAlone,
+                               SUM(CASE WHEN quantity > 0 THEN extra_bhakari ELSE 0 END) AS bhakariWithTiffin,
+                               SUM(CASE WHEN quantity = 0 THEN extra_bhakari ELSE 0 END) AS bhakariAlone
+                        FROM tiffin
+                        GROUP BY customer_id, YEAR(date), MONTH(date)
+                        ORDER BY customer_id ASC, y ASC, m ASC`;
+
+    const paymentsSql = `SELECT customer_id, SUM(amount_paid) AS totalPaid FROM payments GROUP BY customer_id`;
+
+    db.query(customersSql, (err, customers) => {
         if (err) {
             console.error(err);
-            return res.status(500).json({ message: "Error calculating pending bills" });
+            return res.status(500).json({ message: "Error fetching customers" });
         }
 
-        let withPending = 0;
-        rows.forEach((r) => {
-            const pending = Math.round(Number(r.pending));
-            if (pending >= 1) {
-                withPending++;
-                pushToCustomer(r.id, {
-                    title: "💳 Pending bill reminder",
-                    body:  `You have ₹${pending} pending. Please clear your dues.`,
-                    url:   "/home.html"
-                });
+        db.query(monthlySql, (err, monthlyRows) => {
+            if (err) {
+                console.error(err);
+                return res.status(500).json({ message: "Error fetching tiffin data" });
             }
-        });
 
-        console.log(`⏰ Bill reminders: ${withPending} of ${rows.length} customers have pending dues`);
-        return res.status(200).json({ checked: rows.length, withPending });
+            db.query(paymentsSql, (err, paymentRows) => {
+                if (err) {
+                    console.error(err);
+                    return res.status(500).json({ message: "Error fetching payment data" });
+                }
+
+                const rowsByCustomer = {};
+                monthlyRows.forEach(r => {
+                    (rowsByCustomer[r.customer_id] = rowsByCustomer[r.customer_id] || []).push(r);
+                });
+
+                const paidByCustomer = {};
+                paymentRows.forEach(r => { paidByCustomer[r.customer_id] = Number(r.totalPaid) || 0; });
+
+                let withPending = 0;
+                customers.forEach((c) => {
+                    // Bill Summary jaisa hi FIFO hisaab: payment sabse purane mahine se adjust hoti hai
+                    const ledger = buildMonthlyLedger(rowsByCustomer[c.id] || [], paidByCustomer[c.id] || 0);
+                    const entry  = ledger.get(`${prevYear}-${prevMonth}`);
+                    const pending = entry ? Math.round(Number(entry.pending)) : 0;
+
+                    if (pending >= 1) {
+                        withPending++;
+                        pushToCustomer(c.id, {
+                            title: "💳 Pending bill reminder",
+                            body:  `Your ${monthName} mess bill of ₹${pending} is pending. Please pay soon.`,
+                            url:   "/home.html"
+                        });
+                    }
+                });
+
+                console.log(`⏰ Bill reminders for ${monthName} ${prevYear}: ${withPending} of ${customers.length} customers have pending dues`);
+                return res.status(200).json({ month: `${monthName} ${prevYear}`, checked: customers.length, withPending });
+            });
+        });
     });
 });
 
