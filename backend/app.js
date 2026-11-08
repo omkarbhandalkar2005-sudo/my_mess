@@ -267,7 +267,7 @@ app.post('/cron/bill-reminders', (req, res) => {
                         pushToCustomer(c.id, {
                             title: "💳 Pending bill reminder",
                             body:  `Your ${monthName} mess bill of ₹${pending} is pending. Please pay soon.`,
-                            url:   "/home.html"
+                            url:   "/customers-info.html"
                         });
                     }
                 });
