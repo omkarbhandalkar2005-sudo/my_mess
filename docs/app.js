@@ -40,10 +40,14 @@ function getCurrentMonthValue() {
 }
 
 function initMonthFilters() {
-    const current = getCurrentMonthValue();
+    // Default to LAST month (customers pay the previous month's bill)
+    const now  = new Date();
+    const last = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const lastMonth = `${last.getFullYear()}-${String(last.getMonth() + 1).padStart(2, '0')}`;
+
     ["allCustomersMonthFilter", "billMonthFilter"].forEach(id => {
         const el = document.getElementById(id);
-        if (el) el.value = current;
+        if (el) el.value = lastMonth;
     });
 }
 
