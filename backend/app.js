@@ -347,10 +347,10 @@ app.post('/send-otp', (req, res) => {
             return res.status(409).json({ message: "Email already registered" });
         }
 
-        const otp    = Math.floor(100000 + Math.random() * 900000).toString();
+        const otp    = crypto.randomInt(100000, 1000000).toString();
         const expiry = Date.now() + 5 * 60 * 1000;
 
-        otpStore[email] = { otp, expiry };
+        otpStore[email] = { otp, expiry, attempts: 0 };
 
         const html = `
             <h2>Mess Tracker Registration</h2>
@@ -389,6 +389,11 @@ app.post('/register', (req, res) => {
     }
 
     if (stored.otp !== otp) {
+        stored.attempts = (stored.attempts || 0) + 1;
+        if (stored.attempts >= 5) {
+            delete otpStore[email];
+            return res.status(429).json({ message: "Too many wrong attempts, please request a new OTP" });
+        }
         return res.status(400).json({ message: "Galat OTP" });
     }
 
@@ -475,10 +480,10 @@ app.post('/forgot-password/send-otp', (req, res) => {
             return res.status(200).json({ message: "If this email is registered, an OTP has been sent ✅" });
         }
 
-        const otp    = Math.floor(100000 + Math.random() * 900000).toString();
+        const otp    = crypto.randomInt(100000, 1000000).toString();
         const expiry = Date.now() + 5 * 60 * 1000;
 
-        resetOtpStore[email] = { otp, expiry };
+        resetOtpStore[email] = { otp, expiry, attempts: 0 };
 
         const html = `
             <h2>Mess Tracker - Password Reset</h2>
@@ -522,6 +527,11 @@ app.post('/forgot-password/reset', (req, res) => {
     }
 
     if (stored.otp !== otp) {
+        stored.attempts = (stored.attempts || 0) + 1;
+        if (stored.attempts >= 5) {
+            delete resetOtpStore[email];
+            return res.status(429).json({ message: "Too many wrong attempts, please request a new OTP" });
+        }
         return res.status(400).json({ message: "Galat OTP" });
     }
 
