@@ -1,10 +1,86 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta http-equiv="refresh" content="0; url=home.html">
-    <title>My Mess</title>
-    <script>window.location.replace("home.html");</script>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bhandalkar Mess — Tiffin &amp; Mess Service, Khandala (Satara)</title>
+<meta name="description" content="Bhandalkar Mess: home-style veg and non-veg tiffin and mess service in Khandala, Satara. View prices, timings and contact details.">
+<link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96">
+<link rel="icon" type="image/svg+xml" href="/favicon.svg">
+<link rel="shortcut icon" href="/favicon.ico">
+<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
+<link rel="manifest" href="/site.webmanifest">
+<link rel="stylesheet" href="public.css?v=1">
+<script>
+/* Already-logged-in users go straight to the app, exactly like before */
+if (localStorage.getItem("loggedIn") === "true") { window.location.replace("home.html"); }
+</script>
 </head>
-<body></body>
+<body>
+<header class="top"><div class="wrap">
+<a class="brand" href="index.html"><img src="favicon-96x96.png" alt="">Bhandalkar Mess</a>
+<nav class="links" aria-label="Main">
+<a href="index.html#prices">Prices</a>
+<a href="contact.html">Contact Us</a>
+<a class="btn" href="login.html">Login</a>
+</nav></div></header>
+<main>
+<div class="wrap">
+<section class="hero">
+<h1>Home-style tiffin &amp; mess service in Khandala, Satara</h1>
+<p>Bhandalkar Mess serves freshly cooked daily meals — veg and non-veg tiffins, with fresh chapati and bhakari on the side. Take it from our place or get it delivered in the local area.</p>
+<span class="pill">Open daily 10 AM – 10 PM</span><span class="pill">Veg &amp; Non-Veg</span><span class="pill">Pickup &amp; local delivery</span>
+</section>
+
+<section id="prices">
+<h2>Our services &amp; prices</h2>
+<div class="card tblwrap">
+<table class="tbl">
+<thead><tr><th>Item</th><th>Details</th><th>Price (INR)</th></tr></thead>
+<tbody>
+<tr><td>Daily Tiffin</td><td class="muted">Veg or Non-Veg, per tiffin</td><td class="p">₹70</td></tr>
+<tr><td>Fast Tiffin</td><td class="muted">Fasting-day tiffin, per tiffin</td><td class="p">₹50</td></tr>
+<tr><td>Extra Chapati</td><td class="muted">Per piece, with a tiffin</td><td class="p">₹10</td></tr>
+<tr><td>Chapati (without tiffin)</td><td class="muted">Per piece</td><td class="p">₹15</td></tr>
+<tr><td>Extra Bhakari</td><td class="muted">Per piece, with a tiffin</td><td class="p">₹10</td></tr>
+<tr><td>Bhakari (without tiffin)</td><td class="muted">Per piece</td><td class="p">₹20</td></tr>
+</tbody></table>
+</div>
+<p class="muted small">All prices are in Indian Rupees (₹) per item. Prices may change; the price at the time of the order applies.</p>
+</section>
+
+<section>
+<h2>How it works</h2>
+<div class="grid">
+<div class="card"><h3 style="margin-top:0">1. Order daily</h3><p class="muted" style="margin:0">Tell us what you need for the day. Each tiffin and extra item is recorded against your account.</p></div>
+<div class="card"><h3 style="margin-top:0">2. Monthly bill</h3><p class="muted" style="margin:0">You pay only for what was recorded. Your bill, tiffin history and payments are visible after you log in.</p></div>
+<div class="card"><h3 style="margin-top:0">3. Pay online or in person</h3><p class="muted" style="margin:0">Pay your bill online (UPI, cards, netbanking) through a secure payment gateway, or pay us directly.</p></div>
+</div>
+</section>
+
+<section>
+<h2>Contact us</h2>
+<div class="card">
+<p style="margin:0 0 6px"><strong>Bhandalkar Mess</strong></p>
+<p class="muted" style="margin:0 0 12px">Legal name of proprietor: Omkar Sunil Bhandalkar</p>
+<p style="margin:6px 0"><strong>Phone:</strong> <a href="tel:+919960903354">+91 9960903354</a></p>
+<p style="margin:6px 0"><strong>Email:</strong> <a href="mailto:omkarbhandalkar2005@gmail.com">omkarbhandalkar2005@gmail.com</a></p>
+<p style="margin:6px 0"><strong>Address:</strong> Near Sambhaji Chowk, At Post Khandala, Tal. Khandala, Dist. Satara, Maharashtra – 412802</p>
+<p style="margin:6px 0"><strong>Open:</strong> Every day, 10:00 AM – 10:00 PM</p>
+<p style="margin:12px 0 0"><a href="https://www.google.com/maps/search/?api=1&query=Sambhaji+Chowk+Khandala+Satara+412802" target="_blank" rel="noopener">View on Google Maps</a></p>
+</div>
+</section>
+</div>
+</main>
+<footer><div class="wrap">
+<nav aria-label="Legal">
+<a href="terms.html">Terms &amp; Conditions</a>
+<a href="refund-policy.html">Refund &amp; Cancellation</a>
+<a href="privacy-policy.html">Privacy Policy</a>
+<a href="contact.html">Contact Us</a>
+</nav>
+<div>© <span id="yr">2026</span> Bhandalkar Mess. Operated by Omkar Sunil Bhandalkar.</div>
+<script>document.getElementById("yr").textContent=new Date().getFullYear();</script>
+</div></footer>
+</body>
 </html>
