@@ -539,7 +539,7 @@ app.post('/forgot-password/reset', (req, res) => {
 // the same role='customer' filter as /api/monthly-summary, just without
 // the billing joins. `contact` was added for Customers Info — existing
 // consumers only ever read `id`/`name`, so this is additive and safe.
-app.get('/api/customers', (req, res) => {
+app.get('/api/customers', requireAdmin, (req, res) => {
     db.query("SELECT id, name, contact FROM customers WHERE role = 'customer' ORDER BY id ASC", (err, result) => {
         if (err) {
             console.error(err);
@@ -552,7 +552,7 @@ app.get('/api/customers', (req, res) => {
 // TIFFIN LIST FOR A GIVEN DATE (used on Add Tiffin page to show "who has
 // taken a tiffin today" — same data as tiffin-history, just grouped by
 // date instead of by customer, with the customer name joined in).
-app.get('/tiffin-by-date/:date', (req, res) => {
+app.get('/tiffin-by-date/:date', requireAdmin, (req, res) => {
     const sql = `SELECT t.id, t.customer_id, c.name, t.type, t.quantity, t.extra_roti, t.extra_bhakari
                  FROM tiffin t
                  JOIN customers c ON c.id = t.customer_id
@@ -570,7 +570,7 @@ app.get('/tiffin-by-date/:date', (req, res) => {
 });
 
 // ADD TIFFIN
-app.post('/add-tiffin', (req, res) => {
+app.post('/add-tiffin', requireAdmin, (req, res) => {
     const { customer_id, date, type, quantity, extra_roti, extra_bhakari } = req.body;
 
     if (!customer_id || !date || !type || quantity == null) {
@@ -591,7 +591,7 @@ app.post('/add-tiffin', (req, res) => {
 });
 
 // ADD PAYMENT
-app.post('/add-payment', (req, res) => {
+app.post('/add-payment', requireAdmin, (req, res) => {
     const { customer_id, amount_paid, date } = req.body;
 
     if (!customer_id || !amount_paid || !date) {
@@ -742,7 +742,7 @@ app.get('/tiffin-history/:id', (req, res) => {
 });
 
 // DELETE TIFFIN
-app.delete('/tiffin/:id', (req, res) => {
+app.delete('/tiffin/:id', requireAdmin, (req, res) => {
     const sql = `DELETE FROM tiffin WHERE id = ?`;
 
     db.query(sql, [req.params.id], (err, result) => {
@@ -934,7 +934,7 @@ app.get('/final-bill/:id', (req, res) => {
 });
 
 // ALL CUSTOMERS SUMMARY (Admin list — name, id, total tiffins, total bill)
-app.get('/api/monthly-summary', (req, res) => {
+app.get('/api/monthly-summary', requireAdmin, (req, res) => {
     const { month, year } = req.query;
     const hasFilter = month && year;
 
@@ -1257,7 +1257,7 @@ app.post('/bookings', (req, res) => {
 });
 
 // ADMIN: Get today's booking requests (all customers)
-app.get('/admin/bookings/today', (req, res) => {
+app.get('/admin/bookings/today', requireAdmin, (req, res) => {
     const { date } = getIST();
 
     const sql = `SELECT b.id, b.customer_id, c.name, b.meal_type, b.selected_food_type, b.extra_roti, b.extra_bhakari, b.status, b.created_at
@@ -1276,7 +1276,7 @@ app.get('/admin/bookings/today', (req, res) => {
 });
 
 // ADMIN: Approve a booking (also adds it to the customer's bill)
-app.post('/admin/bookings/:id/approve', (req, res) => {
+app.post('/admin/bookings/:id/approve', requireAdmin, (req, res) => {
     const bookingId = req.params.id;
 
     db.query("SELECT * FROM bookings WHERE id = ?", [bookingId], (err, rows) => {
@@ -1323,7 +1323,7 @@ app.post('/admin/bookings/:id/approve', (req, res) => {
 });
 
 // ADMIN: Reject a booking
-app.post('/admin/bookings/:id/reject', (req, res) => {
+app.post('/admin/bookings/:id/reject', requireAdmin, (req, res) => {
     db.query("UPDATE bookings SET status = 'rejected' WHERE id = ?", [req.params.id], (err, result) => {
         if (err) {
             console.error(err);
@@ -1353,7 +1353,7 @@ app.post('/admin/bookings/:id/reject', (req, res) => {
 // ============================================================
 
 // GET full weekly menu (all days, Lunch + Dinner)
-app.get('/admin/menu', (req, res) => {
+app.get('/admin/menu', requireAdmin, (req, res) => {
     db.query("SELECT day_of_week, meal_type, veg_menu_text, nonveg_menu_text, meal_time FROM daily_menus", (err, rows) => {
         if (err) {
             console.error(err);
@@ -1364,7 +1364,7 @@ app.get('/admin/menu', (req, res) => {
 });
 
 // UPDATE (or create) a single day+meal's menu and timing
-app.put('/admin/menu', (req, res) => {
+app.put('/admin/menu', requireAdmin, (req, res) => {
     const { day_of_week, meal_type, veg_menu_text, nonveg_menu_text, meal_time } = req.body;
 
     if (!day_of_week || !meal_type) {
