@@ -627,7 +627,7 @@ app.post('/add-payment', requireAdmin, (req, res) => {
 });
 
 // CREATE RAZORPAY ORDER (called when customer taps "Pay Now")
-app.post('/create-razorpay-order', (req, res) => {
+app.post('/create-razorpay-order', requireOwner('body', 'customer_id'), (req, res) => {
     const { customer_id, amount } = req.body;
 
     if (!customer_id || !amount) {
@@ -1109,7 +1109,7 @@ app.get('/push/public-key', (req, res) => {
 });
 
 // Phone ki subscription save karo (same phone dobara aaye toh update ho jayegi)
-app.post('/push/subscribe', (req, res) => {
+app.post('/push/subscribe', requireOwner('body', 'customer_id'), (req, res) => {
     const { customer_id, subscription } = req.body;
 
     if (!customer_id || !subscription || !subscription.endpoint ||
@@ -1131,7 +1131,7 @@ app.post('/push/subscribe', (req, res) => {
 });
 
 // turn off Notifications
-app.post('/push/unsubscribe', (req, res) => {
+app.post('/push/unsubscribe', requireAuth, (req, res) => {
     const { endpoint } = req.body;
 
     if (!endpoint) {
@@ -1198,7 +1198,7 @@ app.get('/menu/today/:customer_id', requireOwner('params', 'customer_id'), (req,
 });
 
 // CUSTOMER: Book a tiffin for today (Lunch/Dinner)
-app.post('/bookings', (req, res) => {
+app.post('/bookings', requireOwner('body', 'customer_id'), (req, res) => {
     const { customer_id, meal_type, selected_food_type } = req.body;
 
     if (!customer_id || !meal_type) {
