@@ -6,6 +6,26 @@
 
 const API = "https://my-mess-q25u.onrender.com";
 
+// ── Auth: har API request ke saath login token automatically bhejo ──
+const _origFetch = window.fetch.bind(window);
+window.fetch = function (url, options) {
+    options = options || {};
+    const isApi = typeof url === "string" && url.startsWith(API);
+    const token = localStorage.getItem("token");
+    if (isApi && token) {
+        options = Object.assign({}, options, {
+            headers: Object.assign({}, options.headers || {}, { Authorization: "Bearer " + token })
+        });
+    }
+    return _origFetch(url, options).then(function (res) {
+        if (isApi && res.status === 401) {
+            localStorage.clear();
+            window.location.href = "login.html";
+        }
+        return res;
+    });
+};
+
 // Remembers the most recently loaded bill so payNow() knows the pending
 // amount without needing another round-trip to the server.
 let lastBillData = null;

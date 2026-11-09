@@ -109,6 +109,7 @@ function login() {
         localStorage.setItem("name", payload.name || "");
         localStorage.setItem("contact", payload.contact || "");
         localStorage.setItem("email", payload.email || "");
+        localStorage.setItem("token", payload.token || "");
         window.location.href = "home.html";
         return;
     }
