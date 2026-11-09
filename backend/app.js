@@ -4,6 +4,7 @@ const cors       = require('cors');
 const bcrypt     = require('bcrypt');
 const https      = require('https');
 const crypto     = require('crypto');
+const jwt        = require('jsonwebtoken');
 const app        = express();
 const db         = require('./db');
 
@@ -40,6 +41,35 @@ app.use(express.json({
     // turns req.body into a JS object.
     verify: (req, res, buf) => { req.rawBody = buf; }
 }));
+
+// ---------- AUTH MIDDLEWARE ----------
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+    console.warn("⚠️ JWT_SECRET missing — auth tokens disabled");
+}
+
+function requireAuth(req, res, next) {
+    const header = req.headers['authorization'] || '';
+    const token  = header.startsWith('Bearer ') ? header.slice(7) : null;
+    if (!token || !JWT_SECRET) {
+        return res.status(401).json({ message: "Login required" });
+    }
+    try {
+        req.user = jwt.verify(token, JWT_SECRET);
+        next();
+    } catch (e) {
+        return res.status(401).json({ message: "Session expired, please login again" });
+    }
+}
+
+function requireAdmin(req, res, next) {
+    requireAuth(req, res, () => {
+        if (req.user.role !== 'admin') {
+            return res.status(403).json({ message: "Admin only" });
+        }
+        next();
+    });
+}
 
 const TIFFIN_PRICE  = 70;
 const FAST_PRICE    = 50;
@@ -392,9 +422,15 @@ app.post('/login', (req, res) => {
                 return res.status(401).json({ message: "Invalid email or password" });
             }
 
+            const userRole = String(result[0].role || "customer").toLowerCase().trim();
+            const token = JWT_SECRET
+                ? jwt.sign({ id: result[0].id, role: userRole }, JWT_SECRET, { expiresIn: '30d' })
+                : null;
+
             return res.status(200).json({
                 message:    "Login successful",
-                role:       String(result[0].role || "customer").toLowerCase().trim(),
+                token:      token,
+                role:       userRole,
                 customer_id: result[0].id,
                 name:       result[0].name,
                 contact:    result[0].contact,
