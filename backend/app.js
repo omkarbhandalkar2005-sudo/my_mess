@@ -5,6 +5,8 @@ const bcrypt     = require('bcrypt');
 const https      = require('https');
 const crypto     = require('crypto');
 const jwt        = require('jsonwebtoken');
+const helmet      = require('helmet');
+const rateLimit   = require('express-rate-limit');
 const app        = express();
 const db         = require('./db');
 
@@ -34,7 +36,38 @@ try {
     console.error("⚠️ Web Push disabled: invalid VAPID keys", err.message);
 }
 
-app.use(cors());
+app.set('trust proxy', 1); // Render sits behind one proxy, so req.ip must come from X-Forwarded-For
+app.use(helmet({ crossOriginResourcePolicy: { policy: "cross-origin" } }));
+
+const ALLOWED_ORIGINS = [
+    'https://mymes.online',
+    'https://www.mymes.online',
+    'https://my-mess.pages.dev'
+];
+app.use(cors({
+    origin: (origin, callback) => {
+        // No Origin header = not a browser (Razorpay webhook, cron job, curl) -> allow
+        if (!origin || ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
+        return callback(null, false);
+    }
+}));
+
+const loginLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 10,
+    skipSuccessfulRequests: true,   // only FAILED logins count
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many login attempts, please try again after 15 minutes" }
+});
+const otpLimiter = rateLimit({
+    windowMs: 15 * 60 * 1000,
+    limit: 5,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { message: "Too many OTP requests, please try again after 15 minutes" }
+});
+
 app.use(express.json({
     // Razorpay's webhook signature is computed over the exact raw bytes
     // of the request body, so we stash them here before body-parsing
@@ -330,7 +363,7 @@ app.get('/', (req, res) => {
 });
 
 // SEND OTP
-app.post('/send-otp', (req, res) => {
+app.post('/send-otp', otpLimiter, (req, res) => {
     const { email } = req.body;
 
     if (!email) {
@@ -420,7 +453,7 @@ app.post('/register', (req, res) => {
 });
 
 // LOGIN
-app.post('/login', (req, res) => {
+app.post('/login', loginLimiter, (req, res) => {
     const { email, password } = req.body;
 
     if (!email || !password) {
@@ -461,7 +494,7 @@ app.post('/login', (req, res) => {
 });
 
 // FORGOT PASSWORD - SEND OTP
-app.post('/forgot-password/send-otp', (req, res) => {
+app.post('/forgot-password/send-otp', otpLimiter, (req, res) => {
     const { email } = req.body;
 
     if (!email) {
