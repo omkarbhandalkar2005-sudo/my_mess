@@ -71,6 +71,21 @@ function requireAdmin(req, res, next) {
     });
 }
 
+// Allows the request only if the logged-in user owns the data (their id matches
+// the given params/body field) or is an admin.
+function requireOwner(source, field) {
+    return (req, res, next) => {
+        requireAuth(req, res, () => {
+            if (req.user.role === 'admin') return next();
+            const target = (req[source] || {})[field];
+            if (String(req.user.id) !== String(target)) {
+                return res.status(403).json({ message: "Not allowed" });
+            }
+            next();
+        });
+    };
+}
+
 const TIFFIN_PRICE  = 70;
 const FAST_PRICE    = 50;
 const CHAPATI_PRICE       = 10;   // chapati taken WITH a tiffin
@@ -720,7 +735,7 @@ app.post('/razorpay-webhook', (req, res) => {
 });
 
 // TIFFIN HISTORY
-app.get('/tiffin-history/:id', (req, res) => {
+app.get('/tiffin-history/:id', requireOwner('params', 'id'), (req, res) => {
     const { month, year } = req.query;
     const hasFilter = month && year;
 
@@ -760,7 +775,7 @@ app.delete('/tiffin/:id', requireAdmin, (req, res) => {
 });
 
 // PAYMENT HISTORY
-app.get('/payment-history/:id', (req, res) => {
+app.get('/payment-history/:id', requireOwner('params', 'id'), (req, res) => {
     const { month, year } = req.query;
     const hasFilter = month && year;
 
@@ -823,7 +838,7 @@ function buildMonthlyLedger(monthlyRows, totalPaidPool) {
 }
 
 // FINAL BILL
-app.get('/final-bill/:id', (req, res) => {
+app.get('/final-bill/:id', requireOwner('params', 'id'), (req, res) => {
     const id = req.params.id;
     const { month, year } = req.query;
     const hasFilter = month && year;
@@ -1137,7 +1152,7 @@ app.post('/push/unsubscribe', (req, res) => {
 // ============================================================
 
 // GET today's menu + this customer's booking status for Lunch & Dinner
-app.get('/menu/today/:customer_id', (req, res) => {
+app.get('/menu/today/:customer_id', requireOwner('params', 'customer_id'), (req, res) => {
     const { date, day } = getIST();
     const customerId = req.params.customer_id;
 
