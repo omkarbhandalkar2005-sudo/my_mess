@@ -30,6 +30,16 @@ window.fetch = function (url, options) {
 // amount without needing another round-trip to the server.
 let lastBillData = null;
 
+// XSS protection: escape user-controlled text before putting it inside innerHTML
+function escapeHtml(value) {
+    return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#39;");
+}
+
 if (localStorage.getItem("loggedIn") !== "true") {
     window.location.href = "login.html";
 }
@@ -101,7 +111,7 @@ function loadAllCustomers() {
 
         const rows = data.map(c => `<tr>
             <td>${c.id}</td>
-            <td>${c.name}</td>
+            <td>${escapeHtml(c.name)}</td>
             <td>${c.totalTiffin}</td>
             <td>₹${c.totalAmount}</td>
             <td style="color:#16a34a;">₹${c.totalPaid}</td>
@@ -204,8 +214,8 @@ function renderCustomersListTable(list) {
 
     const rows = list.map(c => `<tr>
         <td>${c.id}</td>
-        <td>${c.name}</td>
-        <td>${c.contact ?? "—"}</td>
+        <td>${escapeHtml(c.name)}</td>
+        <td>${escapeHtml(c.contact ?? "—")}</td>
     </tr>`).join("");
 
     container.innerHTML = `<div class="table-wrap"><table>
@@ -323,7 +333,7 @@ function initCustomerSelector(baseId) {
 
             listEl.innerHTML = matches.map((c, i) => `
                 <li class="customer-selector-option" id="${baseId}_opt_${i}" role="option" data-index="${i}">
-                    <span>${c.name}</span><span class="customer-selector-id">#${c.id}</span>
+                    <span>${escapeHtml(c.name)}</span><span class="customer-selector-id">#${c.id}</span>
                 </li>`).join("");
             listEl.hidden = false;
             searchEl.setAttribute("aria-expanded", "true");
@@ -844,7 +854,7 @@ function renderTable(rows, columns, deleteFn) {
     }
     const headers = columns.map(c => `<th>${c.label}</th>`).join("") + (deleteFn ? "<th></th>" : "");
     const body = rows.map(row =>
-        `<tr>${columns.map(c => `<td>${c.key === 'date' ? formatDate(row[c.key]) : (row[c.key] ?? "—")}</td>`).join("")}${
+        `<tr>${columns.map(c => `<td>${c.key === 'date' ? formatDate(row[c.key]) : escapeHtml(row[c.key] ?? "—")}</td>`).join("")}${
             deleteFn ? `<td><button class="btn btn-danger btn-sm" onclick="${deleteFn}(${row.id})">Delete</button></td>` : ""
         }</tr>`
     ).join("");
@@ -1161,8 +1171,8 @@ function loadBookings() {
             const statusColor = b.status === 'approved' ? '#16a34a' : b.status === 'rejected' ? '#dc2626' : '#d97706';
 
             return `<tr>
-                <td>${b.name} (#${b.customer_id})</td>
-                <td>${b.selected_food_type || "—"}</td>
+                <td>${escapeHtml(b.name)} (#${b.customer_id})</td>
+                <td>${escapeHtml(b.selected_food_type || "—")}</td>
                 <td>${b.extra_roti || 0}</td>
                 <td>${b.extra_bhakari || 0}</td>
                 <td style="color:${statusColor}; text-transform:capitalize;">${b.status}</td>
