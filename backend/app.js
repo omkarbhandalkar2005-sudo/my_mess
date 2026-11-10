@@ -410,6 +410,14 @@ app.post('/register', (req, res) => {
         return res.status(400).json({ message: "All fields are required" });
     }
 
+    // Input validation: block HTML/script characters (stored XSS protection)
+    const nameOk    = /^[\p{L}\p{M}\p{N}][\p{L}\p{M}\p{N} .\x27-]{1,49}$/u.test(String(name).trim());
+    const contactOk = /^[0-9+\- ]{7,15}$/.test(String(contact).trim());
+    const emailOk   = /^[^\s<>"'@]+@[^\s<>"'@]+\.[^\s<>"'@]+$/.test(String(email).trim());
+    if (!nameOk)    return res.status(400).json({ message: "Invalid name (letters, numbers, spaces, . ' - only, max 50 characters)" });
+    if (!contactOk) return res.status(400).json({ message: "Invalid contact number" });
+    if (!emailOk)   return res.status(400).json({ message: "Invalid email address" });
+
     const stored = otpStore[email];
 
     if (!stored) {
