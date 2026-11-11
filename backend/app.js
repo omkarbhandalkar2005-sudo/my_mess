@@ -410,6 +410,10 @@ app.post('/register', (req, res) => {
         return res.status(400).json({ message: "All fields are required" });
     }
 
+    if (typeof password !== 'string' || password.length < 6) {
+        return res.status(400).json({ message: "Password kam se kam 6 characters ka hona chahiye" });
+    }
+
     // Input validation: block HTML/script characters (stored XSS protection)
     const nameOk    = /^[\p{L}\p{M}\p{N}][\p{L}\p{M}\p{N} .\x27-]{1,49}$/u.test(String(name).trim());
     const contactOk = /^[0-9+\- ]{7,15}$/.test(String(contact).trim());
