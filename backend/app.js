@@ -685,8 +685,13 @@ app.post('/create-razorpay-order', requireOwner('body', 'customer_id'), (req, re
         return res.status(400).json({ message: "customer_id and amount are required" });
     }
 
+    const amountNum = Number(amount);
+    if (!Number.isFinite(amountNum) || amountNum < 1 || amountNum > 50000) {
+        return res.status(400).json({ message: "Amount must be between ₹1 and ₹50,000" });
+    }
+
     const options = {
-        amount:   Math.round(amount * 100), // Razorpay takes amount in paise (₹1 = 100)
+        amount:   Math.round(amountNum * 100), // Razorpay takes amount in paise (₹1 = 100)
         currency: "INR",
         receipt:  `receipt_${customer_id}_${Date.now()}`,
         notes: {
