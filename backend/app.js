@@ -806,6 +806,82 @@ app.post('/razorpay-webhook', (req, res) => {
     });
 });
 
+// CREATE CASHFREE ORDER (called when customer taps "Pay Now")
+app.post('/create-cashfree-order', requireOwner('body', 'customer_id'), (req, res) => {
+    const { customer_id, amount } = req.body;
+
+    if (!customer_id || !amount) {
+        return res.status(400).json({ message: "customer_id and amount are required" });
+    }
+
+    const amountNum = Number(amount);
+    if (!Number.isFinite(amountNum) || amountNum < 1 || amountNum > 50000) {
+        return res.status(400).json({ message: "Amount must be between ₹1 and ₹50,000" });
+    }
+
+    db.query("SELECT name, contact, email FROM customers WHERE id = ?", [customer_id], async (err, rows) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ message: "DB error while creating order" });
+        }
+        if (rows.length === 0) {
+            return res.status(404).json({ message: "Customer not found" });
+        }
+
+        const c = rows[0];
+        // Cashfree needs a 10-digit phone: strip spaces/+/- and keep last 10 digits
+        const phone = String(c.contact || '').replace(/\D/g, '').slice(-10);
+        if (phone.length !== 10) {
+            return res.status(400).json({ message: "A valid 10-digit contact number is required" });
+        }
+
+        const orderBody = {
+            order_id:       `order_${customer_id}_${Date.now()}`,
+            order_amount:   Math.round(amountNum * 100) / 100,
+            order_currency: 'INR',
+            customer_details: {
+                customer_id:    `cust_${customer_id}`,
+                customer_name:  c.name,
+                customer_email: c.email,
+                customer_phone: phone
+            },
+            order_meta: {
+                notify_url: 'https://my-mess-q25u.onrender.com/cashfree-webhook'
+            },
+            order_note: 'Tiffin bill payment',
+            order_tags: { customer_id: String(customer_id) } // webhook isse padhega
+        };
+
+        try {
+            const cfRes = await fetch(`${CASHFREE_BASE_URL}/orders`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type':    'application/json',
+                    'x-client-id':     process.env.CASHFREE_APP_ID,
+                    'x-client-secret': process.env.CASHFREE_SECRET_KEY,
+                    'x-api-version':   CASHFREE_API_VERSION
+                },
+                body: JSON.stringify(orderBody)
+            });
+            const data = await cfRes.json();
+
+            if (!cfRes.ok || !data.payment_session_id) {
+                console.error('❌ Cashfree create order failed:', cfRes.status, data);
+                return res.status(502).json({ message: "Error creating Cashfree order" });
+            }
+
+            res.status(200).json({
+                payment_session_id: data.payment_session_id,
+                order_id:           data.order_id,
+                mode: process.env.CASHFREE_ENV === 'production' ? 'production' : 'sandbox'
+            });
+        } catch (e) {
+            console.error('❌ Cashfree request error:', e);
+            res.status(502).json({ message: "Unable to reach Cashfree" });
+        }
+    });
+});
+
 // TIFFIN HISTORY
 app.get('/tiffin-history/:id', requireOwner('params', 'id'), (req, res) => {
     const { month, year } = req.query;
