@@ -520,6 +520,60 @@ function payNow() {
     });
 }
 
+// ── Cashfree "Pay Now" flow (naya; purane payNow() ke saath side-by-side) ──
+function payNowCashfree() {
+    const id = localStorage.getItem("customer_id");
+    if (!id) return;
+
+    if (!lastBillData || Number(lastBillData.pending) <= 0) {
+        alert("No pending amount to pay for the selected month.");
+        return;
+    }
+
+    const amount = Number(lastBillData.pending);
+    const btn = document.getElementById("payNowBtn");
+    const originalText = btn.innerText;
+    btn.disabled = true;
+    btn.innerText = "Please wait...";
+
+    fetch(`${API}/create-cashfree-order`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ customer_id: id, amount: amount })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (!data.payment_session_id) {
+            btn.disabled = false;
+            btn.innerText = originalText;
+            alert("Unable to start payment. Please try again.");
+            return;
+        }
+
+        const cashfree = Cashfree({ mode: data.mode });
+        return cashfree.checkout({
+            paymentSessionId: data.payment_session_id,
+            redirectTarget: "_modal"
+        }).then(result => {
+            btn.disabled = false;
+            btn.innerText = originalText;
+
+            if (result && result.error) {
+                alert("Payment failed or cancelled. Please try again.");
+            }
+
+            getBill();
+            setTimeout(getBill, 4000); // webhook ko record karne ka time dene ke liye
+        });
+    })
+    .catch(err => {
+        console.error(err);
+        btn.disabled = false;
+        btn.innerText = originalText;
+        alert("Unable to reach server. Please try again.");
+    });
+}
+
 // ── Shared page bootstrap: role classes, role badge, account modal fields ──
 function initCommon() {
     const role = getRole();

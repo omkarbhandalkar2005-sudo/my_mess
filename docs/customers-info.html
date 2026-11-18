@@ -139,7 +139,7 @@
 
             <!-- UPI Pay Button - Customer Only -->
             <div class="customer-only" id="payNowSection" style="margin-top: 1rem; display: none;">
-                <button class="btn btn-primary" onclick="payNow()" id="payNowBtn">
+                <button class="btn btn-primary" onclick="payNowCashfree()" id="payNowBtn">
                     💳 Pay Now
                 </button>
             </div>
@@ -216,7 +216,7 @@
 
 <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script src="https://sdk.cashfree.com/js/v3/cashfree.js"></script>
-<script src="app.js?v=21"></script>
+<script src="app.js?v=22"></script>
 <script>
     function initBillSummary() {
         initCommon();
