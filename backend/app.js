@@ -17,6 +17,18 @@ const razorpay = new Razorpay({
     key_secret: process.env.RAZORPAY_KEY_SECRET
 });
 
+// Cashfree config — base URL env ke hisaab se chunta hai
+const CASHFREE_BASE_URL = process.env.CASHFREE_ENV === 'production'
+    ? 'https://api.cashfree.com/pg'
+    : 'https://sandbox.cashfree.com/pg';
+const CASHFREE_API_VERSION = '2023-08-01';
+
+if (!process.env.CASHFREE_APP_ID || !process.env.CASHFREE_SECRET_KEY) {
+    console.warn('⚠️ Cashfree keys missing in environment');
+} else {
+    console.log('💳 Cashfree configured, mode:', process.env.CASHFREE_ENV || 'sandbox');
+}
+
 // Web Push setup — VAPID keys Render ke Environment se aati hain
 const webpush = require('web-push');
 let pushEnabled = false;
