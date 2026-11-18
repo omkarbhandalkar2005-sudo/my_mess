@@ -882,6 +882,97 @@ app.post('/create-cashfree-order', requireOwner('body', 'customer_id'), (req, re
     });
 });
 
+// CASHFREE WEBHOOK — Cashfree's server calls this when a payment succeeds.
+// Records the customer's payment in the `payments` table automatically.
+app.post('/cashfree-webhook', (req, res) => {
+    const signature = req.headers['x-webhook-signature'];
+    const timestamp = req.headers['x-webhook-timestamp'];
+    const secret    = process.env.CASHFREE_SECRET_KEY;
+
+    if (!signature || !timestamp || !secret || !req.rawBody) {
+        return res.status(400).json({ message: "Missing signature or webhook not configured" });
+    }
+
+    // Cashfree signs: timestamp + raw body, HMAC-SHA256 with the secret key, base64
+    const expectedSignature = crypto
+        .createHmac('sha256', secret)
+        .update(timestamp)
+        .update(req.rawBody)
+        .digest('base64');
+
+    const sigMatches = signature.length === expectedSignature.length &&
+        crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(signature));
+
+    if (!sigMatches) {
+        console.error('❌ Cashfree webhook: signature mismatch');
+        return res.status(400).json({ message: "Invalid signature" });
+    }
+
+    // Only react to successful payments; return 200 for other events so Cashfree doesn't retry
+    const type = req.body.type;
+    if (type !== 'PAYMENT_SUCCESS_WEBHOOK') {
+        return res.status(200).json({ status: "ignored", type });
+    }
+
+    const data    = (req.body.data) || {};
+    const order   = data.order || {};
+    const payment = data.payment || {};
+
+    if (payment.payment_status && payment.payment_status !== 'SUCCESS') {
+        return res.status(200).json({ status: "ignored_not_success" });
+    }
+
+    const cfPaymentId = payment.cf_payment_id ? String(payment.cf_payment_id) : null;
+    const amountPaid  = Number(payment.payment_amount);
+
+    // customer_id: from order_tags first, fallback to order_id pattern order_<id>_<timestamp>
+    let customerId = order.order_tags && order.order_tags.customer_id;
+    if (!customerId && order.order_id) {
+        const m = /^order_(\d+)_/.exec(String(order.order_id));
+        if (m) customerId = m[1];
+    }
+
+    // If anything essential is missing, fail loudly (400) so it shows up as a failed
+    // webhook in the Cashfree dashboard instead of silently losing a payment
+    if (!cfPaymentId || !customerId || !Number.isFinite(amountPaid) || amountPaid <= 0) {
+        console.error('⚠️ Cashfree webhook: missing fields', {
+            cfPaymentId, customerId, amountPaid, orderId: order.order_id
+        });
+        return res.status(400).json({ message: "Missing payment details" });
+    }
+
+    // Idempotency check — Cashfree can send the same webhook more than once (retries)
+    db.query(`SELECT id FROM payments WHERE cashfree_payment_id = ?`, [cfPaymentId], (err, rows) => {
+        if (err) {
+            console.error(err);
+            return res.status(500).json({ message: "DB error while checking payment" });
+        }
+
+        if (rows.length > 0) {
+            return res.status(200).json({ status: "already_recorded" });
+        }
+
+        const { date } = getIST();
+        const insertSql = `INSERT INTO payments (customer_id, amount_paid, date, cashfree_payment_id, source)
+                           VALUES (?, ?, ?, ?, 'cashfree')`;
+
+        db.query(insertSql, [customerId, amountPaid, date, cfPaymentId], (err2) => {
+            if (err2) {
+                // Two retries arriving at the same moment: the UNIQUE key blocks the second one
+                if (err2.code === 'ER_DUP_ENTRY') {
+                    return res.status(200).json({ status: "already_recorded" });
+                }
+                console.error(err2);
+                return res.status(500).json({ message: "Error recording payment" });
+            }
+
+            console.log(`✅ Cashfree payment auto-recorded: customer ${customerId}, ₹${amountPaid}`);
+            res.status(200).json({ status: "recorded" });
+            notifyAdminsOnlinePayment(customerId, amountPaid);
+        });
+    });
+});
+
 // TIFFIN HISTORY
 app.get('/tiffin-history/:id', requireOwner('params', 'id'), (req, res) => {
     const { month, year } = req.query;
