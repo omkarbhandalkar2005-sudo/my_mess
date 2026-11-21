@@ -10,13 +10,6 @@ const rateLimit   = require('express-rate-limit');
 const app        = express();
 const db         = require('./db');
 
-// Razorpay client — Order banane ke liye
-const Razorpay = require('razorpay');
-const razorpay = new Razorpay({
-    key_id:     process.env.RAZORPAY_KEY_ID,
-    key_secret: process.env.RAZORPAY_KEY_SECRET
-});
-
 // Cashfree config — base URL env ke hisaab se chunta hai
 const CASHFREE_BASE_URL = process.env.CASHFREE_ENV === 'production'
     ? 'https://api.cashfree.com/pg'
@@ -58,7 +51,7 @@ const ALLOWED_ORIGINS = [
 ];
 app.use(cors({
     origin: (origin, callback) => {
-        // No Origin header = not a browser (Razorpay webhook, cron job, curl) -> allow
+        // No Origin header = not a browser (Cashfree webhook, cron job, curl) -> allow
         if (!origin || ALLOWED_ORIGINS.includes(origin)) return callback(null, true);
         return callback(null, false);
     }
@@ -81,7 +74,7 @@ const otpLimiter = rateLimit({
 });
 
 app.use(express.json({
-    // Razorpay's webhook signature is computed over the exact raw bytes
+    // Cashfree's webhook signature is computed over the exact raw bytes
     // of the request body, so we stash them here before body-parsing
     // turns req.body into a JS object.
     verify: (req, res, buf) => { req.rawBody = buf; }
@@ -265,7 +258,7 @@ function notifyAdminsNewBooking(customerId, mealType, foodType) {
     });
 }
 
-// Customer ne Razorpay se payment ki → admin ko batao
+// Customer ne Cashfree se payment ki → admin ko batao
 function notifyAdminsOnlinePayment(customerId, amount) {
     if (!pushEnabled) return;
     db.query("SELECT name FROM customers WHERE id = ?", [customerId], (err, rows) => {
@@ -690,119 +683,6 @@ app.post('/add-payment', requireAdmin, (req, res) => {
         }
 
         return res.status(201).json({ message: "Payment recorded successfully 💰" });
-    });
-});
-
-// CREATE RAZORPAY ORDER (called when customer taps "Pay Now")
-app.post('/create-razorpay-order', requireOwner('body', 'customer_id'), (req, res) => {
-    const { customer_id, amount } = req.body;
-
-    if (!customer_id || !amount) {
-        return res.status(400).json({ message: "customer_id and amount are required" });
-    }
-
-    const amountNum = Number(amount);
-    if (!Number.isFinite(amountNum) || amountNum < 1 || amountNum > 50000) {
-        return res.status(400).json({ message: "Amount must be between ₹1 and ₹50,000" });
-    }
-
-    const options = {
-        amount:   Math.round(amountNum * 100), // Razorpay takes amount in paise (₹1 = 100)
-        currency: "INR",
-        receipt:  `receipt_${customer_id}_${Date.now()}`,
-        notes: {
-            customer_id: String(customer_id) // webhook isse padhega payment record karne ke liye
-        }
-    };
-
-    razorpay.orders.create(options, (err, order) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ message: "Error creating Razorpay order" });
-        }
-
-        res.status(200).json({
-            order_id: order.id,
-            amount:   order.amount,
-            currency: order.currency,
-            key_id:   process.env.RAZORPAY_KEY_ID
-        });
-    });
-});
-
-// RAZORPAY WEBHOOK — Razorpay's server calls this when a payment is
-// captured. This automatically records the customer's payment in the
-// `payments` table, so the admin doesn't have to do it manually.
-app.post('/razorpay-webhook', (req, res) => {
-    const signature = req.headers['x-razorpay-signature'];
-    const secret    = process.env.RAZORPAY_WEBHOOK_SECRET;
-
-    if (!signature || !secret || !req.rawBody) {
-        return res.status(400).json({ message: "Missing signature or webhook not configured" });
-    }
-
-    // Verify signature — confirms this request genuinely came from
-    // Razorpay and wasn't a fake call from someone else
-    const expectedSignature = crypto
-        .createHmac('sha256', secret)
-        .update(req.rawBody)
-        .digest('hex');
-
-    const sigMatches = signature.length === expectedSignature.length &&
-        crypto.timingSafeEqual(Buffer.from(expectedSignature), Buffer.from(signature));
-
-    if (!sigMatches) {
-        console.error('❌ Razorpay webhook: signature mismatch');
-        return res.status(400).json({ message: "Invalid signature" });
-    }
-
-    const event = req.body.event;
-
-    // Only react to successful payment events, ignore the rest (but return 200,
-    // otherwise Razorpay will keep retrying)
-    if (event !== 'payment.captured') {
-        return res.status(200).json({ status: "ignored", event });
-    }
-
-    const payment           = req.body.payload.payment.entity;
-    const razorpayPaymentId = payment.id;
-    const customerId        = payment.notes && payment.notes.customer_id;
-    const amountPaid        = payment.amount / 100; // paise -> rupees
-
-    if (!customerId) {
-        console.error('⚠️ Razorpay webhook: payment.captured without customer_id in notes', razorpayPaymentId);
-        return res.status(200).json({ status: "ignored_no_customer_id" });
-    }
-
-    // Idempotency check — Razorpay can send the same webhook multiple times
-    // (retries), so we must check to avoid inserting duplicates
-    const checkSql = `SELECT id FROM payments WHERE razorpay_payment_id = ?`;
-
-    db.query(checkSql, [razorpayPaymentId], (err, rows) => {
-        if (err) {
-            console.error(err);
-            return res.status(500).json({ message: "DB error while checking payment" });
-        }
-
-        if (rows.length > 0) {
-            return res.status(200).json({ status: "already_recorded" });
-        }
-
-        const { date } = getIST();
-        const insertSql = `INSERT INTO payments (customer_id, amount_paid, date, razorpay_payment_id, source)
-                            VALUES (?, ?, ?, ?, 'razorpay')`;
-
-        db.query(insertSql, [customerId, amountPaid, date, razorpayPaymentId], (err2) => {
-            if (err2) {
-                console.error(err2);
-                return res.status(500).json({ message: "Error recording payment" });
-            }
-
-            console.log(`✅ Razorpay payment auto-recorded: customer ${customerId}, ₹${amountPaid}`);
-            res.status(200).json({ status: "recorded" });
-            notifyAdminsOnlinePayment(customerId, amountPaid);
-            return;
-        });
     });
 });
 
