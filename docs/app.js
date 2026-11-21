@@ -26,7 +26,7 @@ window.fetch = function (url, options) {
     });
 };
 
-// Remembers the most recently loaded bill so payNow() knows the pending
+// Remembers the most recently loaded bill so payNowCashfree() knows the pending
 // amount without needing another round-trip to the server.
 let lastBillData = null;
 
@@ -451,76 +451,7 @@ function showAlert(elId, message, type) {
     el.innerText = message;
 }
 
-// ── Razorpay "Pay Now" flow (customer bill payment) ──
-function payNow() {
-    const id = localStorage.getItem("customer_id");
-    if (!id) return;
-
-    if (!lastBillData || Number(lastBillData.pending) <= 0) {
-        alert("No pending amount to pay for the selected month.");
-        return;
-    }
-
-    const amount = Number(lastBillData.pending);
-    const btn = document.getElementById("payNowBtn");
-    const originalText = btn.innerText;
-    btn.disabled = true;
-    btn.innerText = "Please wait...";
-
-    fetch(`${API}/create-razorpay-order`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ customer_id: id, amount: amount })
-    })
-    .then(res => res.json())
-    .then(order => {
-        btn.disabled = false;
-        btn.innerText = originalText;
-
-        if (!order.order_id) {
-            alert("Unable to start payment. Please try again.");
-            return;
-        }
-
-        const options = {
-            key: order.key_id,
-            amount: order.amount,
-            currency: order.currency,
-            name: "Bhandalkar Mess",
-            description: "Tiffin bill payment",
-            order_id: order.order_id,
-            prefill: {
-                name: localStorage.getItem("name") || "",
-                contact: localStorage.getItem("contact") || "",
-                email: localStorage.getItem("email") || ""
-            },
-            theme: { color: "#1fceb8" },
-            handler: function () {
-                getBill();
-                setTimeout(getBill, 4000); // webhook ko record karne ka time dene ke liye
-            },
-            modal: {
-                ondismiss: function () {
-                    // Customer closed the checkout without paying — no action needed.
-                }
-            }
-        };
-
-        const rzp = new Razorpay(options);
-        rzp.on("payment.failed", function () {
-            alert("Payment failed. Please try again.");
-        });
-        rzp.open();
-    })
-    .catch(err => {
-        console.error(err);
-        btn.disabled = false;
-        btn.innerText = originalText;
-        alert("Unable to reach server. Please try again.");
-    });
-}
-
-// ── Cashfree "Pay Now" flow (naya; purane payNow() ke saath side-by-side) ──
+// ── Cashfree "Pay Now" flow (customer bill payment) ──
 function payNowCashfree() {
     const id = localStorage.getItem("customer_id");
     if (!id) return;
